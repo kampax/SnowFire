@@ -1,0 +1,119 @@
+var mde = ee.Image("users/javiermartinez/mde5m_parcelas_IGN_epsg25830"),
+    geometry = 
+    /* color: #d63000 */
+    /* shown: false */
+    ee.Geometry.Polygon(
+        [[[-3.476836016774578, 36.970905407038366],
+          [-3.4776728659872247, 36.97431687000115],
+          [-3.4808700591329766, 36.97339116150019],
+          [-3.47953968346159, 36.969379627885566]]]),
+    geometry2 = 
+    /* color: #98ff00 */
+    /* shown: false */
+    ee.Geometry.Polygon(
+        [[[-3.4793957235748185, 36.96943696903682],
+          [-3.478784179919423, 36.96966840924105],
+          [-3.478290653460683, 36.97007128495497],
+          [-3.476823287722346, 36.970893795737155],
+          [-3.476952033755061, 36.97125380663809],
+          [-3.4772631700007883, 36.97148524131806],
+          [-3.477745967623469, 36.972042395994656],
+          [-3.4779605443446604, 36.97257383203953],
+          [-3.478196341760833, 36.97309754571061],
+          [-3.4783572743017266, 36.97367183137766],
+          [-3.4782821724493096, 36.9739804009911],
+          [-3.4781534264165948, 36.97481181844481],
+          [-3.478325087793548, 36.975394662378214],
+          [-3.4815696091257697, 36.97500390861893],
+          [-3.481408676584876, 36.9745667738429],
+          [-3.481237015207923, 36.97361535418032],
+          [-3.4810880962581714, 36.97331125919475],
+          [-3.4809057060451587, 36.97288268618128],
+          [-3.4808029917001493, 36.97199911455211],
+          [-3.4807171610116727, 36.97140767296433],
+          [-3.48053477079866, 36.970970517532564],
+          [-3.4805025842904813, 36.97052478784052],
+          [-3.4802772787332303, 36.97011334273116],
+          [-3.4800197866678007, 36.969993337488646],
+          [-3.4800305155038602, 36.96974475459873],
+          [-3.4797301080941923, 36.969316161502725]]]),
+    insolacion = ee.Image("projects/ee-carlosnavarro/assets/insolacion_total_anual_parcelas_epsg25830"),
+    curvatura = ee.Image("projects/ee-carlosnavarro/assets/Curvatura_rediamWGS84"),
+    pixels = ee.FeatureCollection("users/CarlosNavarro/Pixeles_Parcela/Pixeles_parcelas");
+
+//Load the layers of interest
+// In this case the majority are in a personal asset
+
+
+//rename bands of mde and insolation
+var mde = mde.rename("height");
+var insolation = insolacion.rename("insolation");
+var curvature = curvatura.rename("curvature");
+// Calculate the slope
+var slope = ee.Terrain.slope(mde).rename("slope").toInt();
+//Calculate the orientation, the values it takes are in degrees
+//where 0=N, 90=E, 180=S, 270=W.
+var orientation = ee.Terrain.aspect(mde).rename("orientation").toInt();
+//Calculate shadow map
+var shadows = ee.Terrain.hillshade(mde).rename("shadows");
+
+
+
+// Layer visualization
+var elevationVis = {
+   min: 434,
+   max: 2946,
+   palette: ['0000ff', '00ffff', 'ffff00', 'ff0000', 'ffffff'],
+};
+
+//Add the DEM to the map
+Map.addLayer(mde,elevationVis,'Digital Elevation Model', 0);
+Map.addLayer(insolation, {},'Total annual insolation of plots',0);
+Map.addLayer(slope,{},"Slope",0);
+Map.addLayer(orientation,{},"orientation",0);
+Map.addLayer(shadows,{} ,'shadowmap',0);
+Map.addLayer(curvature, {}, "curvature", 0);
+
+//To facilitate data extraction we put each layer as a band
+var anci=mde.addBands(insolation)
+.addBands(orientation)
+.addBands(slope)
+.addBands(shadows)
+.addBands(curvature);
+
+Map.addLayer(anci, {}, "All layers together");
+print(anci, "All layers");
+
+
+//Center the map
+Map.centerObject(anci, 14);
+//-------------------------
+//Extraction of values
+//-------------------------
+
+var training1 = anci.sampleRegions({
+   collection: pixels.geometry(),
+   properties: ['ID'], //Use only if I want to summarize the table
+   scale: 5
+})//.filter(ee.Filter.notNull(['geometry']));
+
+
+print(training1.first(), "Pixel table with Plot 1 variables");
+
+//-------------------------
+//Export values
+//-------------------------
+
+// If I want to have it in the personal asset
+Export.table.toAsset({
+   collection:training1,
+   description:"Pixeles_parcela_ancy",
+   assetId: "users/CarlosNavarro/Pixeles_Parcela/Pixeles_parcela_ancy"
+   });
+  
+// or download it to the drive
+Export.table.toDrive({
+     'collection': training1,
+     'description': 'PlotPixels',
+     'fileNamePrefix': 'PlotPixels',
+     'fileFormat': 'CSV'});

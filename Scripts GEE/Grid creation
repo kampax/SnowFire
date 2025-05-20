@@ -1,0 +1,69 @@
+var geometry = 
+    /* color: #d63000 */
+    /* shown: false */
+    /* displayProperties: [
+      {
+        "type": "rectangle"
+      }
+    ] */
+    ee.Geometry.Polygon(
+        [[[-3.3802467560288707, 36.985356553050345],
+          [-3.3802467560288707, 36.932683766277364],
+          [-3.2978492950913707, 36.932683766277364],
+          [-3.2978492950913707, 36.985356553050345]]], null, false);
+
+////////////////////////////////////////////////// /////////////////////
+///////////////////CREATE GRID///////////////////////////// ////////////
+////////////////////////////////////////////////// /////////////////////
+
+//Author: Carlos Javier Navarro based on: https://developers.google.com/earth-engine/apidocs/ee-geometry-coveringgrid
+
+///1) I load the extension from which I want to create the grid
+var extension = ee.FeatureCollection("projects/ee-carlosnavarro/assets/MDT30_limite");
+
+// Alternatively I can draw a geometry
+
+
+// 2) I load a collection of images as the entire lansat collection uses the same grid I can select any
+var l8 = ee.ImageCollection('LANDSAT/LC08/C02/T1_L2')
+     .filterDate('2021-06-01', '2022-03-31')
+     .filterMetadata("CLOUD_COVER", 'less_than', 10)
+     .filterBounds(extension);
+
+
+// 3) I extract the projection of an image, selecting a band because the size varies according to the Band
+var bandProj = l8.first().select('SR_B4').projection();
+
+//check the projection
+print(bandProj);
+
+// 4) I create the grid with coveringFrid, filtering by the extension and using the Landsat projection extracted previously
+var grid = extension.geometry().coveringGrid(bandProj).filterBounds(extension);
+
+// 5) If I wish I can filter the grid to a smaller area
+
+var grid_filt = grid.filterBounds(geometry);
+
+
+////6) I display the grid and the original image
+Map.addLayer(l8, {bands: ['SR_B4', 'SR_B3', 'SR_B2']}, "Image Landsat 8");
+Map.addLayer(grid_filt, {}, 'Landsat PIXEL GRID');
+Map.addLayer(extension, {}, 'Extension', 0);
+
+// Center on the grid
+
+Map.centerObject(geometry, 18);
+
+//////////////////
+///Export ///////
+//////////////////
+
+
+Export.table.toDrive({
+   collection:grid,
+   description:"Grid_AOI",
+   folder:'gee',
+   fileFormat:'SHP',
+   //maxVertices:1e13
+  
+})

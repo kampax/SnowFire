@@ -1,0 +1,802 @@
+// Study area: Sierra Nevada
+var snev = ee.FeatureCollection('WCMC/WDPA/current/polygons').filter(ee.Filter.eq('WDPAID',555722086));
+
+//Center Map on Sierra Nevada 
+Map.centerObject(snev, 10);
+
+//Filter the months that correspond to the hydrological periods
+var months=ee.Filter.or((ee.Filter.calendarRange(1, 5, "month")),(ee.Filter.calendarRange(10, 12, "month")));
+
+//Cloud filter based on Cloud_cover of the whole scene
+var cloudcover= 80;
+
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////TEMPORAL SERIES OF LANDSAT/////////////////////////////////////////////////////////// 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+//-----------------------------------------------------------------------------------------------------------------------------
+/////////////////////////////////////////// Landsat - 4  //////////////////////////////////////////////////////////////////////
+//-----------------------------------------------------------------------------------------------------------------------------
+
+// Load the Landsat collection
+// Filter by study area
+// Define the time period of the collection
+// Use the cloud threshold, only scenes with less than 20% clouds are considered
+// Select only images of the hydrological period
+
+var Landsat4 = ee.ImageCollection('LANDSAT/LT04/C02/T1_L2')  
+               .filterBounds(snev) 
+               .filterDate("1982-08-22", "1993-06-24") 
+               .filterMetadata("CLOUD_COVER", 'less_than',cloudcover)
+               .filter(months);
+
+// Scaling factors. according to https://developers.google.com/earth-engine/datasets/catalog/LANDSAT_LT05_C02_T1_L2
+function applyScaleFactors(image) {
+  var opticalBands = image.select('SR_B.').multiply(0.0000275).add(-0.2);
+  var thermalBand = image.select('ST_B6').multiply(0.00341802).add(149.0);
+  return image.addBands(opticalBands, null, true)
+              .addBands(thermalBand, null, true);
+}
+
+function maskClouds(image) {             
+  var cloudShadowBitMask1 = (1 << 4);    
+  var cloudsBitMask1 = (1 << 3);     
+  var highcloud1 = (1 << 9);
+  var water = (1 << 7);
+  var qa1 = image.select('QA_PIXEL').rename('Cloud');    
+  var mask1 = qa1.bitwiseAnd(cloudsBitMask1).eq(0)               
+               .and(qa1.bitwiseAnd(highcloud1).eq(0))            
+               //.or(qa1.bitwiseAnd(cloudShadowBitMask1).eq(0)))
+               .and(qa1.bitwiseAnd(water).eq(0));
+  var maskedComposite = image.updateMask(mask1);
+return maskedComposite.addBands(mask1);            //
+}
+
+
+
+// Apply scale factors
+Landsat4 = Landsat4.map(applyScaleFactors);
+
+// Apply the mask clouds
+var collectionL4 = Landsat4.map(maskClouds);
+
+// Select bands for the calculations of the indices
+var col_L4 = collectionL4.select(['SR_B1','SR_B2','SR_B3','SR_B4','SR_B5', 'SR_B7', 'ST_B6']);
+
+
+//-----------------------------------------------------------------------------------------------------------------------------
+/////////////////////////////////////////// Landsat - 5  //////////////////////////////////////////////////////////////////////
+//-----------------------------------------------------------------------------------------------------------------------------
+
+// Load the Landsat collection
+// Filter by study area
+// Define the time period of the collection
+// Use the cloud threshold, only scenes with less than 20% clouds are considered
+// Select only images of the hydrological period
+
+// Landsat Collection Info: https://developers.google.com/earth-engine/datasets/catalog/LANDSAT_LT05_C02_T1_L2#bands
+var Landsat5 = ee.ImageCollection('LANDSAT/LT05/C02/T1_L2')  
+               .filterBounds(snev) 
+               .filterDate("1984-10-01", "2012-06-01") 
+               .filterMetadata("CLOUD_COVER", 'less_than',cloudcover)
+               .filter(months);
+
+
+
+// Apply scale factors
+Landsat5 = Landsat5.map(applyScaleFactors);
+
+
+// Apply the mask clouds
+var collectionL5 = Landsat5.map(maskClouds);
+
+// I select bands for the calculations of the indices
+var col_L5 = collectionL5.select(['SR_B1','SR_B2','SR_B3','SR_B4','SR_B5', 'SR_B7', 'ST_B6']);
+
+
+//-----------------------------------------------------------------------------------------------------------------------------
+/////////////////////////////////////////// Landsat - 7  //////////////////////////////////////////////////////////////////////
+//-----------------------------------------------------------------------------------------------------------------------------
+
+// Load the Landsat collection
+// Filter by study area
+// Define the time period of the collection
+// Use the cloud threshold, only scenes with less than 20% clouds are considered
+// Select only images of the hydrological period
+
+
+var Landsat7 = ee.ImageCollection('LANDSAT/LE07/C02/T1_L2')
+                .filterBounds(snev)
+                                .filter(ee.Filter.or(
+    ee.Filter.date('1999-10-01', '2003-06-01'),
+    ee.Filter.date('2010-06-01', '2013-06-30')
+  ))
+                .filterMetadata("CLOUD_COVER", 'less_than',cloudcover)
+                .filter(months);
+               
+
+
+// Apply scaling factors.
+var Landsat7 = Landsat7.map(applyScaleFactors);
+
+// Apply the mask clouds
+var collectionL7 = Landsat7.map(maskClouds);
+
+// Select Bands
+var col_L7 = collectionL7.select(['SR_B1','SR_B2','SR_B3','SR_B4','SR_B5', 'SR_B7', 'ST_B6']);
+
+
+
+//-----------------------------------------------------------------------------------------------------------------------------
+/////////////////////////////////////////// Landsat - 8  //////////////////////////////////////////////////////////////////////
+//-----------------------------------------------------------------------------------------------------------------------------
+
+var Landsat8 = ee.ImageCollection('LANDSAT/LC08/C02/T1_L2')
+               .filterBounds(snev)
+               .filterDate("2013-03-18", "2025-05-20")
+                .filter(months)
+                .filterMetadata("CLOUD_COVER", 'less_than',cloudcover);
+
+// Scaling factors.
+function applyScaleFactorsL8(image) {
+  var opticalBands = image.select('SR_B.').multiply(0.0000275).add(-0.2);
+  var thermalBands = image.select('ST_B.*').multiply(0.00341802).add(149.0);
+  return image.addBands(opticalBands, null, true)
+              .addBands(thermalBands, null, true);
+}
+
+// Apply scaling factors.
+Landsat8 = Landsat8.map(applyScaleFactorsL8);
+
+
+// Apply the mask clouds
+var collectionL8 = Landsat8.map(maskClouds); 
+
+
+// Select Bands
+var col_L8 = collectionL8.select(['SR_B1','SR_B2','SR_B3','SR_B4','SR_B5', 'SR_B6','SR_B7', 'ST_B10']);
+
+
+//-----------------------------------------------------------------------------------------------------------------------------
+/////////////////////////////// rename the bands ///////////////////////////////////////////////////////////////////////////////
+//-----------------------------------------------------------------------------------------------------------------------------
+
+//Function for Landsat 4 5 and 7
+var L47 = function(image) {
+  return  image.select(['SR_B1','SR_B2','SR_B3','SR_B4','SR_B5', 'SR_B7', 'ST_B6'],['Blue', 'Green','Red' ,'NIR','SWIR', 'SWIR2', 'Thermal'])};
+
+//Function for Landsat 5 and 7
+var L8 = function(image) {
+  return  image.select(['SR_B2','SR_B3','SR_B4','SR_B5', 'SR_B6','SR_B7', 'ST_B10'],['Blue', 'Green','Red' ,'NIR','SWIR', 'SWIR2', 'Thermal'])};            
+
+//// Rename Bands
+var Col4 = col_L4.map(L47);
+var Col5 = col_L5.map(L47);
+var Col7  = col_L7.map(L47);
+var Col8  = col_L8.map(L8);
+
+//Merge Collection
+var col_landsat = Col4.merge(Col5).merge(Col7).merge(Col8);
+
+//print Collection
+print('Landsat 4, 5, 7 y 8:', col_landsat.size());
+
+//-----------------------------------------------------------------------------------------------------------------------------
+///////////////////////////////////////////////// Extract median values ///////////////////////////////////////////////////////
+//-----------------------------------------------------------------------------------------------------------------------------
+
+
+var years = ee.List.sequence(1984, 2024);
+
+var mediasAnuales = years.map(function(year){
+    var startWinter = ee.Date.fromYMD(year, 10, 1);
+    var endWinter = startWinter.advance(8, 'month');
+    var Winter = col_landsat.filterDate(startWinter, endWinter).reduce(ee.Reducer.median());
+    return Winter.set('year', ee.Number(year).add(1));///aca hago que tome al año siguiente como referencia 
+});
+
+
+
+var mediasAnualesFC = ee.ImageCollection(mediasAnuales);
+print(mediasAnualesFC, "Medias anuales");
+
+var mediasAnualesFC = mediasAnualesFC//.filter(ee.Filter.eq("year", 2003).not());
+
+
+//-----------------------------------------------------------------------------------------------------------------------------
+///////////////////////////////////////////////// INDICE NDSI   //////////////////////////////////////////////////////////////
+//-----------------------------------------------------------------------------------------------------------------------------
+//
+
+// Function for calculating NDSI
+
+var addVariables = function(scene) {
+  var ndsi = scene.expression(
+        '(Green - SWIR)/(Green + SWIR)', {
+            'Green': scene.select('Green_median'),
+            'SWIR': scene.select('SWIR_median'),
+        }).rename('NDSI');
+  return scene.addBands(ndsi);
+};
+
+
+//Function to calculate NDSI and obtain binary values using the threshold of 0.35
+var snowAdd = function(image){
+  var snow = (image.select('NDSI').gte(0.35).and(image.select('Green_median')).gt(0.1).and(image.select('NIR_median').gt(0.1))).multiply(100)
+  .rename('snow_binary');
+  return image.addBands(snow).select('NDSI','snow_binary').copyProperties(image, ['system:time_start']);
+};
+
+//Apply function to landsat collection
+var col_landsat_NDSI = mediasAnualesFC.map(addVariables);
+var col_landsat_NDSI_bin = col_landsat_NDSI.map(snowAdd);
+
+///Apply function to landsat collection
+var Colsnow_NDSI = col_landsat_NDSI.select('NDSI');
+var Colsnow_binary =col_landsat_NDSI_bin.select('snow_binary');
+
+// Add to the map an RGB image, a layer of the NDSI index and the layer with the binary values of NDSI
+Map.addLayer(mediasAnualesFC.filter(ee.Filter.eq("year", 1986)), {min:0.05, max:0.18, bands:["Red_median", "Green_median", "Blue_median"]}, "RGB", 0);
+Map.addLayer(Colsnow_NDSI.filter(ee.Filter.eq("year", 1986)), {}, "Snow NDSI", 0);
+//Map.addLayer(Colsnow_binary.filter(ee.Filter.eq("year", 1986)), {}, "Snow NDSI binary",0);
+
+
+print('Colsnow_binary:', Colsnow_binary);
+
+//Create an image for each year
+var IMG1985 = ee.Image(Colsnow_binary.filter(ee.Filter.eq('year', 1985)).first()).set({'system:time_start': ee.Date('1985-01-01').millis()});
+var IMG1986 = ee.Image(Colsnow_binary.filter(ee.Filter.eq('year', 1986)).first()).set({'system:time_start': ee.Date('1986-01-01').millis()});
+var IMG1987 = ee.Image(Colsnow_binary.filter(ee.Filter.eq('year', 1987)).first()).set({'system:time_start': ee.Date('1987-01-01').millis()});
+var IMG1988 = ee.Image(Colsnow_binary.filter(ee.Filter.eq('year', 1988)).first()).set({'system:time_start': ee.Date('1988-01-01').millis()});
+var IMG1989 = ee.Image(Colsnow_binary.filter(ee.Filter.eq('year', 1989)).first()).set({'system:time_start': ee.Date('1989-01-01').millis()});
+var IMG1990 = ee.Image(Colsnow_binary.filter(ee.Filter.eq('year', 1990)).first()).set({'system:time_start': ee.Date('1990-01-01').millis()});
+var IMG1991 = ee.Image(Colsnow_binary.filter(ee.Filter.eq('year', 1991)).first()).set({'system:time_start': ee.Date('1991-01-01').millis()});
+var IMG1992 = ee.Image(Colsnow_binary.filter(ee.Filter.eq('year', 1992)).first()).set({'system:time_start': ee.Date('1992-01-01').millis()});
+var IMG1993 = ee.Image(Colsnow_binary.filter(ee.Filter.eq('year', 1993)).first()).set({'system:time_start': ee.Date('1993-01-01').millis()});
+var IMG1994 = ee.Image(Colsnow_binary.filter(ee.Filter.eq('year', 1994)).first()).set({'system:time_start': ee.Date('1994-01-01').millis()});
+var IMG1995 = ee.Image(Colsnow_binary.filter(ee.Filter.eq('year', 1995)).first()).set({'system:time_start': ee.Date('1995-01-01').millis()});
+var IMG1996 = ee.Image(Colsnow_binary.filter(ee.Filter.eq('year', 1996)).first()).set({'system:time_start': ee.Date('1996-01-01').millis()});
+var IMG1997 = ee.Image(Colsnow_binary.filter(ee.Filter.eq('year', 1997)).first()).set({'system:time_start': ee.Date('1997-01-01').millis()});
+var IMG1998 = ee.Image(Colsnow_binary.filter(ee.Filter.eq('year', 1998)).first()).set({'system:time_start': ee.Date('1998-01-01').millis()});
+var IMG1999 = ee.Image(Colsnow_binary.filter(ee.Filter.eq('year', 1999)).first()).set({'system:time_start': ee.Date('1999-01-01').millis()});
+var IMG2000 = ee.Image(Colsnow_binary.filter(ee.Filter.eq('year', 2000)).first()).set({'system:time_start': ee.Date('2000-01-01').millis()});
+var IMG2001 = ee.Image(Colsnow_binary.filter(ee.Filter.eq('year', 2001)).first()).set({'system:time_start': ee.Date('2001-01-01').millis()});
+var IMG2002 = ee.Image(Colsnow_binary.filter(ee.Filter.eq('year', 2002)).first()).set({'system:time_start': ee.Date('2002-01-01').millis()});
+var IMG2003 = ee.Image(Colsnow_binary.filter(ee.Filter.eq('year', 2003)).first()).set({'system:time_start': ee.Date('2003-01-01').millis()});
+var IMG2004 = ee.Image(Colsnow_binary.filter(ee.Filter.eq('year', 2004)).first()).set({'system:time_start': ee.Date('2004-01-01').millis()});
+var IMG2005 = ee.Image(Colsnow_binary.filter(ee.Filter.eq('year', 2005)).first()).set({'system:time_start': ee.Date('2005-01-01').millis()});
+var IMG2006 = ee.Image(Colsnow_binary.filter(ee.Filter.eq('year', 2006)).first()).set({'system:time_start': ee.Date('2006-01-01').millis()});
+var IMG2007 = ee.Image(Colsnow_binary.filter(ee.Filter.eq('year', 2007)).first()).set({'system:time_start': ee.Date('2007-01-01').millis()});
+var IMG2008 = ee.Image(Colsnow_binary.filter(ee.Filter.eq('year', 2008)).first()).set({'system:time_start': ee.Date('2008-01-01').millis()});
+var IMG2009 = ee.Image(Colsnow_binary.filter(ee.Filter.eq('year', 2009)).first()).set({'system:time_start': ee.Date('2009-01-01').millis()});
+var IMG2010 = ee.Image(Colsnow_binary.filter(ee.Filter.eq('year', 2010)).first()).set({'system:time_start': ee.Date('2010-01-01').millis()});
+var IMG2011 = ee.Image(Colsnow_binary.filter(ee.Filter.eq('year', 2011)).first()).set({'system:time_start': ee.Date('2011-01-01').millis()});
+var IMG2012 = ee.Image(Colsnow_binary.filter(ee.Filter.eq('year', 2012)).first()).set({'system:time_start': ee.Date('2012-01-01').millis()});
+var IMG2013 = ee.Image(Colsnow_binary.filter(ee.Filter.eq('year', 2013)).first()).set({'system:time_start': ee.Date('2013-01-01').millis()});
+var IMG2014 = ee.Image(Colsnow_binary.filter(ee.Filter.eq('year', 2014)).first()).set({'system:time_start': ee.Date('2014-01-01').millis()});
+var IMG2015 = ee.Image(Colsnow_binary.filter(ee.Filter.eq('year', 2015)).first()).set({'system:time_start': ee.Date('2015-01-01').millis()});
+var IMG2016 = ee.Image(Colsnow_binary.filter(ee.Filter.eq('year', 2016)).first()).set({'system:time_start': ee.Date('2016-01-01').millis()});
+var IMG2017 = ee.Image(Colsnow_binary.filter(ee.Filter.eq('year', 2017)).first()).set({'system:time_start': ee.Date('2017-01-01').millis()});
+var IMG2018 = ee.Image(Colsnow_binary.filter(ee.Filter.eq('year', 2018)).first()).set({'system:time_start': ee.Date('2018-01-01').millis()});
+var IMG2019 = ee.Image(Colsnow_binary.filter(ee.Filter.eq('year', 2019)).first()).set({'system:time_start': ee.Date('2019-01-01').millis()});
+var IMG2020 = ee.Image(Colsnow_binary.filter(ee.Filter.eq('year', 2020)).first()).set({'system:time_start': ee.Date('2020-01-01').millis()});
+var IMG2021 = ee.Image(Colsnow_binary.filter(ee.Filter.eq('year', 2021)).first()).set({'system:time_start': ee.Date('2021-01-01').millis()});
+var IMG2022 = ee.Image(Colsnow_binary.filter(ee.Filter.eq('year', 2022)).first()).set({'system:time_start': ee.Date('2022-01-01').millis()});
+var IMG2023 = ee.Image(Colsnow_binary.filter(ee.Filter.eq('year', 2023)).first()).set({'system:time_start': ee.Date('2023-01-01').millis()});
+var IMG2024 = ee.Image(Colsnow_binary.filter(ee.Filter.eq('year', 2024)).first()).set({'system:time_start': ee.Date('2024-01-01').millis()});
+var IMG2025 = ee.Image(Colsnow_binary.filter(ee.Filter.eq('year', 2025)).first()).set({'system:time_start': ee.Date('2025-01-01').millis()});
+
+
+//mask the values
+var IMG1985_mask=IMG1985.updateMask(IMG1985);
+var IMG1986_mask=IMG1986.updateMask(IMG1986);
+var IMG1987_mask=IMG1987.updateMask(IMG1987);
+var IMG1988_mask=IMG1988.updateMask(IMG1988);
+var IMG1989_mask=IMG1989.updateMask(IMG1989);
+var IMG1990_mask=IMG1990.updateMask(IMG1990);
+var IMG1991_mask=IMG1991.updateMask(IMG1991);
+var IMG1992_mask=IMG1992.updateMask(IMG1992);
+var IMG1993_mask=IMG1993.updateMask(IMG1993);
+var IMG1994_mask=IMG1994.updateMask(IMG1994);
+var IMG1995_mask=IMG1995.updateMask(IMG1995);
+var IMG1996_mask=IMG1996.updateMask(IMG1996);
+var IMG1997_mask=IMG1997.updateMask(IMG1997);
+var IMG1998_mask=IMG1998.updateMask(IMG1998);
+var IMG1999_mask=IMG1999.updateMask(IMG1999);
+var IMG2000_mask=IMG2000.updateMask(IMG2000);
+var IMG2001_mask=IMG2001.updateMask(IMG2001);
+var IMG2002_mask=IMG2002.updateMask(IMG2002);
+var IMG2003_mask=IMG2003.updateMask(IMG2003);
+var IMG2004_mask=IMG2004.updateMask(IMG2004);
+var IMG2005_mask=IMG2005.updateMask(IMG2005);
+var IMG2006_mask=IMG2006.updateMask(IMG2006);
+var IMG2007_mask=IMG2007.updateMask(IMG2007);
+var IMG2008_mask=IMG2008.updateMask(IMG2008);
+var IMG2009_mask=IMG2009.updateMask(IMG2009);
+var IMG2010_mask=IMG2010.updateMask(IMG2010);
+var IMG2011_mask=IMG2011.updateMask(IMG2011);
+var IMG2012_mask=IMG2012.updateMask(IMG2012);
+var IMG2013_mask=IMG2013.updateMask(IMG2013);
+var IMG2014_mask=IMG2014.updateMask(IMG2014);
+var IMG2015_mask=IMG2015.updateMask(IMG2015);
+var IMG2016_mask=IMG2016.updateMask(IMG2016);
+var IMG2017_mask=IMG2017.updateMask(IMG2017);
+var IMG2018_mask=IMG2018.updateMask(IMG2018);
+var IMG2019_mask=IMG2019.updateMask(IMG2019);
+var IMG2020_mask=IMG2020.updateMask(IMG2020);
+var IMG2021_mask=IMG2021.updateMask(IMG2021);
+var IMG2022_mask=IMG2022.updateMask(IMG2022);
+var IMG2023_mask=IMG2023.updateMask(IMG2023);
+var IMG2024_mask=IMG2024.updateMask(IMG2024);
+var IMG2025_mask=IMG2025.updateMask(IMG2025);
+
+
+/// Para crear un gif puedo crearlo con las mascaras primero tengo que ponerlo en una coleccion 
+
+var ColSnowSierraNevada = ee.ImageCollection([
+IMG1985_mask,
+IMG1986_mask,
+IMG1987_mask,
+IMG1988_mask,
+IMG1989_mask,
+IMG1990_mask,
+IMG1991_mask,
+IMG1992_mask,
+IMG1993_mask,
+IMG1994_mask,
+IMG1995_mask,
+IMG1996_mask,
+IMG1997_mask,
+IMG1998_mask,
+IMG1999_mask,
+IMG2000_mask,
+IMG2001_mask,
+IMG2002_mask,
+IMG2003_mask,
+IMG2004_mask,
+IMG2005_mask,
+IMG2006_mask,
+IMG2007_mask,
+IMG2008_mask,
+IMG2009_mask,
+IMG2010_mask,
+IMG2011_mask,
+IMG2012_mask,
+IMG2013_mask,
+IMG2014_mask,
+IMG2015_mask,
+IMG2016_mask,
+IMG2017_mask,
+IMG2018_mask,
+IMG2019_mask,
+IMG2020_mask,
+IMG2021_mask,
+IMG2022_mask,
+IMG2023_mask,
+IMG2024_mask,
+IMG2025_mask]); 
+
+
+////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////
+
+//Calculate the area of Sierra Nevada
+var snev=snev.geometry();
+var snev_area=snev.area().divide(1);
+// Convert the values to km2
+var snev_areakm2=snev_area.divide(1e6);
+
+print("Area of Sierra Nevada in km2:",snev_areakm2);
+
+// Calculate the area for each image
+
+var area_1985 = IMG1985_mask.multiply(ee.Image.pixelArea()) 
+                    .reduceRegion(ee.Reducer.sum(),snev,30,null,null,false,1e13)
+                    .get('snow_binary')//aca como se llama la banda
+                    //print ('Área 1985 usando o ee.Image.pixelArea en km²', ee.Number(area_1985).divide(1e6))
+
+var area_1986 = IMG1986_mask.multiply(ee.Image.pixelArea()) 
+                    .reduceRegion(ee.Reducer.sum(),snev,30,null,null,false,1e13)
+                    .get('snow_binary')//aca como se llama la banda
+                    //print ('Área 1986 usando o ee.Image.pixelArea en km²', ee.Number(area_1986).divide(1e6));
+
+var area_1987 = IMG1987_mask.multiply(ee.Image.pixelArea()) 
+                    .reduceRegion(ee.Reducer.sum(),snev,30,null,null,false,1e13)
+                    .get('snow_binary')//aca como se llama la banda
+                    //print ('Área 1987 usando o ee.Image.pixelArea en km²', ee.Number(area_1987).divide(1e6));
+
+var area_1988 = IMG1988_mask.multiply(ee.Image.pixelArea()) 
+                    .reduceRegion(ee.Reducer.sum(),snev,30,null,null,false,1e13)
+                    .get('snow_binary')//aca como se llama la banda
+                    //print ('Área 1988 usando o ee.Image.pixelArea en km²', ee.Number(area_1988).divide(1e6))
+
+
+var area_1989 = IMG1989_mask.multiply(ee.Image.pixelArea()) 
+                    .reduceRegion(ee.Reducer.sum(),snev,30,null,null,false,1e13)
+                    .get('snow_binary')//aca como se llama la banda
+                    //print ('Área 1989 usando o ee.Image.pixelArea en km²', ee.Number(area_1989).divide(1e6))
+
+//
+var area_1990 = IMG1990_mask.multiply(ee.Image.pixelArea()) 
+                    .reduceRegion(ee.Reducer.sum(),snev,30,null,null,false,1e13)
+                    .get('snow_binary')//aca como se llama la banda
+                    //print ('Área 1990 usando o ee.Image.pixelArea en km²', ee.Number(area_1990).divide(1e6))
+
+//
+var area_1991 = IMG1991_mask.multiply(ee.Image.pixelArea()) 
+                    .reduceRegion(ee.Reducer.sum(),snev,30,null,null,false,1e13)
+                    .get('snow_binary')//aca como se llama la banda
+                    //print ('Área 1991 usando o ee.Image.pixelArea en km²', ee.Number(area_1991).divide(1e6))
+//
+var area_1992 = IMG1992_mask.multiply(ee.Image.pixelArea()) 
+                    .reduceRegion(ee.Reducer.sum(),snev,30,null,null,false,1e13)
+                    .get('snow_binary')//aca como se llama la banda
+                    //print ('Área 1992 usando o ee.Image.pixelArea en km²', ee.Number(area_1992).divide(1e6))
+//
+var area_1993 = IMG1993_mask.multiply(ee.Image.pixelArea()) 
+                    .reduceRegion(ee.Reducer.sum(),snev,30,null,null,false,1e13)
+                    .get('snow_binary')//aca como se llama la banda
+                    //print ('Área 1993 usando o ee.Image.pixelArea en km²', ee.Number(area_1993).divide(1e6))
+//
+var area_1994 = IMG1994_mask.multiply(ee.Image.pixelArea()) 
+                    .reduceRegion(ee.Reducer.sum(),snev,30,null,null,false,1e13)
+                    .get('snow_binary')//aca como se llama la banda
+                    //print ('Área 1994 usando o ee.Image.pixelArea en km²', ee.Number(area_1994).divide(1e6))
+
+//
+var area_1995 = IMG1995_mask.multiply(ee.Image.pixelArea()) 
+                    .reduceRegion(ee.Reducer.sum(),snev,30,null,null,false,1e13)
+                    .get('snow_binary')//aca como se llama la banda
+                    //print ('Área 1995 usando o ee.Image.pixelArea en km²', ee.Number(area_1995).divide(1e6))
+
+//
+var area_1996 = IMG1996_mask.multiply(ee.Image.pixelArea()) 
+                    .reduceRegion(ee.Reducer.sum(),snev,30,null,null,false,1e13)
+                    .get('snow_binary')//aca como se llama la banda
+                    //print ('Área 1996 usando o ee.Image.pixelArea en km²', ee.Number(area_1996).divide(1e6))
+
+//
+var area_1997 = IMG1997_mask.multiply(ee.Image.pixelArea()) 
+                    .reduceRegion(ee.Reducer.sum(),snev,30,null,null,false,1e13)
+                    .get('snow_binary')//aca como se llama la banda
+                    //print ('Área 1997 usando o ee.Image.pixelArea en km²', ee.Number(area_1997).divide(1e6))
+//
+var area_1998 = IMG1998_mask.multiply(ee.Image.pixelArea()) 
+                    .reduceRegion(ee.Reducer.sum(),snev,30,null,null,false,1e13)
+                    .get('snow_binary')//aca como se llama la banda
+                    //print ('Área 1998 usando o ee.Image.pixelArea en km²', ee.Number(area_1998).divide(1e6))
+//
+var area_1999 = IMG1999_mask.multiply(ee.Image.pixelArea()) 
+                    .reduceRegion(ee.Reducer.sum(),snev,30,null,null,false,1e13)
+                    .get('snow_binary')//aca como se llama la banda
+                    //print ('Área 1999 usando o ee.Image.pixelArea en km²', ee.Number(area_1999).divide(1e6))
+//
+var area_2000 = IMG2000_mask.multiply(ee.Image.pixelArea()) 
+                    .reduceRegion(ee.Reducer.sum(),snev,30,null,null,false,1e13)
+                    .get('snow_binary')//aca como se llama la banda
+                    //print ('Área 2000 usando o ee.Image.pixelArea en km²', ee.Number(area_2000).divide(1e6))
+
+//
+var area_2001 = IMG2001_mask.multiply(ee.Image.pixelArea()) 
+                    .reduceRegion(ee.Reducer.sum(),snev,30,null,null,false,1e13)
+                    .get('snow_binary')//aca como se llama la banda
+                    //print ('Área 2001 usando o ee.Image.pixelArea en km²', ee.Number(area_2001).divide(1e6))
+
+
+//
+var area_2002 = IMG2002_mask.multiply(ee.Image.pixelArea()) 
+                    .reduceRegion(ee.Reducer.sum(),snev,30,null,null,false,1e13)
+                    .get('snow_binary')//aca como se llama la banda
+                    //print ('Área 2002 usando o ee.Image.pixelArea en km²', ee.Number(area_2002).divide(1e6))
+
+
+var area_2003 = IMG2003_mask.multiply(ee.Image.pixelArea()) 
+                    .reduceRegion(ee.Reducer.sum(),snev,30,null,null,false,1e13)
+                    .get('snow_binary')//aca como se llama la banda
+                    //print ('Área 2003 usando o ee.Image.pixelArea en km²', ee.Number(area_2003).divide(1e6))
+
+var area_2004 = IMG2004_mask.multiply(ee.Image.pixelArea()) 
+                    .reduceRegion(ee.Reducer.sum(),snev,30,null,null,false,1e13)
+                    .get('snow_binary')//aca como se llama la banda
+                    //print ('Área 2004 usando o ee.Image.pixelArea en km²', ee.Number(area_2004).divide(1e6))
+
+
+//
+var area_2005 = IMG2005_mask.multiply(ee.Image.pixelArea()) 
+                    .reduceRegion(ee.Reducer.sum(),snev,30,null,null,false,1e13)
+                    .get('snow_binary')//aca como se llama la banda
+                    //print ('Área 2005 usando o ee.Image.pixelArea en km²', ee.Number(area_2005).divide(1e6))
+
+//
+var area_2006 = IMG2006_mask.multiply(ee.Image.pixelArea()) 
+                    .reduceRegion(ee.Reducer.sum(),snev,30,null,null,false,1e13)
+                    .get('snow_binary')//aca como se llama la banda
+                    //print ('Área 2006 usando o ee.Image.pixelArea en km²', ee.Number(area_2006).divide(1e6))
+//
+var area_2007 = IMG2007_mask.multiply(ee.Image.pixelArea()) 
+                    .reduceRegion(ee.Reducer.sum(),snev,30,null,null,false,1e13)
+                    .get('snow_binary')//aca como se llama la banda
+                    //print ('Área 2007 usando o ee.Image.pixelArea en km²', ee.Number(area_2007).divide(1e6))
+
+
+//
+var area_2008 = IMG2008_mask.multiply(ee.Image.pixelArea()) 
+                    .reduceRegion(ee.Reducer.sum(),snev,30,null,null,false,1e13)
+                    .get('snow_binary')//aca como se llama la banda
+                    //print ('Área 2008 usando o ee.Image.pixelArea en km²', ee.Number(area_2008).divide(1e6))
+
+//
+var area_2009 = IMG2009_mask.multiply(ee.Image.pixelArea()) 
+                    .reduceRegion(ee.Reducer.sum(),snev,30,null,null,false,1e13)
+                    .get('snow_binary')//aca como se llama la banda
+                    //print ('Área 2009 usando o ee.Image.pixelArea en km²', ee.Number(area_2009).divide(1e6))
+//
+var area_2010 = IMG2010_mask.multiply(ee.Image.pixelArea()) 
+                    .reduceRegion(ee.Reducer.sum(),snev,30,null,null,false,1e13)
+                    .get('snow_binary')//aca como se llama la banda
+                    //print ('Área 2010 usando o ee.Image.pixelArea en km²', ee.Number(area_2010).divide(1e6))
+
+
+//
+var area_2011 = IMG2011_mask.multiply(ee.Image.pixelArea()) 
+                    .reduceRegion(ee.Reducer.sum(),snev,30,null,null,false,1e13)
+                    .get('snow_binary')//aca como se llama la banda
+                    //print ('Área 2011 usando o ee.Image.pixelArea en km²', ee.Number(area_2011).divide(1e6))
+
+//
+var area_2012 = IMG2012_mask.multiply(ee.Image.pixelArea()) 
+                    .reduceRegion(ee.Reducer.sum(),snev,30,null,null,false,1e13)
+                    .get('snow_binary')//aca como se llama la banda
+                    //print ('Área 2012 usando o ee.Image.pixelArea en km²', ee.Number(area_2012).divide(1e6))
+//
+var area_2013 = IMG2013_mask.multiply(ee.Image.pixelArea()) 
+                    .reduceRegion(ee.Reducer.sum(),snev,30,null,null,false,1e13)
+                    .get('snow_binary')//aca como se llama la banda
+                    //print ('Área 2013 usando o ee.Image.pixelArea en km²', ee.Number(area_2013).divide(1e6))
+
+
+//
+var area_2014 = IMG2014_mask.multiply(ee.Image.pixelArea()) 
+                    .reduceRegion(ee.Reducer.sum(),snev,30,null,null,false,1e13)
+                    .get('snow_binary')//aca como se llama la banda
+                    //print ('Área 2014 usando o ee.Image.pixelArea en km²', ee.Number(area_2014).divide(1e6))
+
+//
+var area_2015 = IMG2015_mask.multiply(ee.Image.pixelArea()) 
+                    .reduceRegion(ee.Reducer.sum(),snev,30,null,null,false,1e13)
+                    .get('snow_binary')//aca como se llama la banda
+                    //print ('Área 2015 usando o ee.Image.pixelArea en km²', ee.Number(area_2015).divide(1e6))
+//
+var area_2016 = IMG2016_mask.multiply(ee.Image.pixelArea()) 
+                    .reduceRegion(ee.Reducer.sum(),snev,30,null,null,false,1e13)
+                    .get('snow_binary')//aca como se llama la banda
+                    //print ('Área 2016 usando o ee.Image.pixelArea en km²', ee.Number(area_2016).divide(1e6));
+
+
+//
+var area_2017 = IMG2017_mask.multiply(ee.Image.pixelArea()) 
+                    .reduceRegion(ee.Reducer.sum(),snev,30,null,null,false,1e13)
+                    .get('snow_binary')//aca como se llama la banda
+                    //print ('Área 2017 usando o ee.Image.pixelArea en km²', ee.Number(area_2017).divide(1e6))
+
+//
+var area_2018 = IMG2018_mask.multiply(ee.Image.pixelArea()) 
+                    .reduceRegion(ee.Reducer.sum(),snev,30,null,null,false,1e13)
+                    .get('snow_binary')//aca como se llama la banda
+                    //print ('Área 2018 usando o ee.Image.pixelArea en km²', ee.Number(area_2018).divide(1e6))
+//
+var area_2019 = IMG2019_mask.multiply(ee.Image.pixelArea()) 
+                    .reduceRegion(ee.Reducer.sum(),snev,30,null,null,false,1e13)
+                    .get('snow_binary')//aca como se llama la banda
+                    //print ('Área 2019 usando o ee.Image.pixelArea en km²', ee.Number(area_2019).divide(1e6))
+
+
+//
+var area_2020 = IMG2020_mask.multiply(ee.Image.pixelArea()) 
+                    .reduceRegion(ee.Reducer.sum(),snev,30,null,null,false,1e13)
+                    .get('snow_binary')//aca como se llama la banda
+                    //print ('Área 2020 usando o ee.Image.pixelArea en km²', ee.Number(area_2020).divide(1e6))
+                    
+//
+var area_2021 = IMG2021_mask.multiply(ee.Image.pixelArea()) 
+                    .reduceRegion(ee.Reducer.sum(),snev,30,null,null,false,1e13)
+                    .get('snow_binary')//aca como se llama la banda
+                    //print ('Área 2021 usando o ee.Image.pixelArea en km²', ee.Number(area_2021).divide(1e6))
+
+//
+var area_2022 = IMG2022_mask.multiply(ee.Image.pixelArea()) 
+                    .reduceRegion(ee.Reducer.sum(),snev,30,null,null,false,1e13)
+                    .get('snow_binary')//aca como se llama la banda
+                    //print ('Área 2022 usando o ee.Image.pixelArea en km²', ee.Number(area_2022).divide(1e6))
+
+//
+var area_2023 = IMG2023_mask.multiply(ee.Image.pixelArea()) 
+                    .reduceRegion(ee.Reducer.sum(),snev,30,null,null,false,1e13)
+                    .get('snow_binary')//aca como se llama la banda
+                    //print ('Área 2023 usando o ee.Image.pixelArea en km²', ee.Number(area_2023).divide(1e6))
+//
+var area_2024 = IMG2024_mask.multiply(ee.Image.pixelArea()) 
+                    .reduceRegion(ee.Reducer.sum(),snev,30,null,null,false,1e13)
+                    .get('snow_binary')//aca como se llama la banda
+                    //print ('Área 2023 usando o ee.Image.pixelArea en km²', ee.Number(area_2023).divide(1e6))
+
+//
+var area_2025 = IMG2025_mask.multiply(ee.Image.pixelArea()) 
+                    .reduceRegion(ee.Reducer.sum(),snev,30,null,null,false,1e13)
+                    .get('snow_binary')//aca como se llama la banda
+                    //print ('Área 2023 usando o ee.Image.pixelArea en km²', ee.Number(area_2023).divide(1e6))
+
+
+///-----------------------------------------------------------------------
+// Get the value of the area in percentage in relation to the Total area 
+//------------------------------------------------------------------------
+
+var A1985=(ee.Number(area_1985).divide(1e6)).divide(snev_areakm2);
+//print ('Área cubierta por nieve en porcentaje 1989',((A1985.multiply(100))))
+var A1986=(ee.Number(area_1986).divide(1e6)).divide(snev_areakm2);
+//print ('Área cubierta por nieve en porcentaje 1989',((A1986.multiply(100))))
+var A1987=(ee.Number(area_1987).divide(1e6)).divide(snev_areakm2);
+//print ('Área cubierta por nieve en porcentaje 1989',((A1987.multiply(100))))
+var A1988=(ee.Number(area_1988).divide(1e6)).divide(snev_areakm2);
+//print ('Área cubierta por nieve en porcentaje 1989',((A1988.multiply(100))))
+var A1989=(ee.Number(area_1989).divide(1e6)).divide(snev_areakm2);
+//print ('Área cubierta por nieve en porcentaje 1989',((A1989.multiply(100))))
+var A1990=(ee.Number(area_1990).divide(1e6)).divide(snev_areakm2);
+//print ('Área cubierta por nieve en porcentaje 1990',((A1990.multiply(100))))
+var A1991=(ee.Number(area_1991).divide(1e6)).divide(snev_areakm2);
+//print ('Área cubierta por nieve en porcentaje 1991',((A1991.multiply(100))))
+var A1992=(ee.Number(area_1992).divide(1e6)).divide(snev_areakm2);
+//print ('Área cubierta por nieve en porcentaje 1992',((A1992.multiply(100))))
+var A1993=(ee.Number(area_1993).divide(1e6)).divide(snev_areakm2);
+//print ('Área cubierta por nieve en porcentaje 1993',((A1993.multiply(100))))
+var A1994=(ee.Number(area_1994).divide(1e6)).divide(snev_areakm2);
+//print ('Área cubierta por nieve en porcentaje 1994',((A1994.multiply(100))))
+var A1995=(ee.Number(area_1995).divide(1e6)).divide(snev_areakm2);
+//print ('Área cubierta por nieve en porcentaje 1995',((A1995.multiply(100))))
+var A1996=(ee.Number(area_1996).divide(1e6)).divide(snev_areakm2);
+//print ('Área cubierta por nieve en porcentaje 1996',((A1996.multiply(100))))
+var A1997=(ee.Number(area_1997).divide(1e6)).divide(snev_areakm2);
+//print ('Área cubierta por nieve en porcentaje 1997',((A1997.multiply(100))))
+var A1998=(ee.Number(area_1998).divide(1e6)).divide(snev_areakm2);
+//print ('Área cubierta por nieve en porcentaje 1998',((A1998.multiply(100))))
+var A1999=(ee.Number(area_1999).divide(1e6)).divide(snev_areakm2);
+//print ('Área cubierta por nieve en porcentaje 1999',((A1999.multiply(100))))
+var A2000=(ee.Number(area_2000).divide(1e6)).divide(snev_areakm2);
+//print ('Área cubierta por nieve en porcentaje 2000',((A2000.multiply(100))))
+var A2001=(ee.Number(area_2001).divide(1e6)).divide(snev_areakm2);
+//print ('Área cubierta por nieve en porcentaje 2001',((A2001.multiply(100))))
+var A2002=(ee.Number(area_2002).divide(1e6)).divide(snev_areakm2);
+//print ('Área cubierta por nieve en porcentaje 2002',((A2002.multiply(100))))
+var A2003=(ee.Number(area_2003).divide(1e6)).divide(snev_areakm2)
+//print ('Área cubierta por nieve en porcentaje 2003',((A2003.multiply(100))))
+var A2004=(ee.Number(area_2004).divide(1e6)).divide(snev_areakm2);
+//print ('Área cubierta por nieve en porcentaje 2004',((A2004.multiply(100))))
+var A2005=(ee.Number(area_2005).divide(1e6)).divide(snev_areakm2);
+//print ('Área cubierta por nieve en porcentaje 2005',((A2005.multiply(100))))
+var A2006=(ee.Number(area_2006).divide(1e6)).divide(snev_areakm2);
+//print ('Área cubierta por nieve en porcentaje 2006',((A2006.multiply(100))))
+var A2007=(ee.Number(area_2007).divide(1e6)).divide(snev_areakm2);
+//print ('Área cubierta por nieve en porcentaje 2007',((A2007.multiply(100))))
+var A2008=(ee.Number(area_2008).divide(1e6)).divide(snev_areakm2);
+//print ('Área cubierta por nieve en porcentaje 2008',((A2008.multiply(100))))
+var A2009=(ee.Number(area_2009).divide(1e6)).divide(snev_areakm2);
+//print ('Área cubierta por nieve en porcentaje 2009',((A2009.multiply(100))))
+var A2010=(ee.Number(area_2010).divide(1e6)).divide(snev_areakm2);
+//print ('Área cubierta por nieve en porcentaje 2010',((A2010.multiply(100))))
+var A2011=(ee.Number(area_2011).divide(1e6)).divide(snev_areakm2);
+//print ('Área cubierta por nieve en porcentaje 2011',((A2011.multiply(100))))
+var A2012=(ee.Number(area_2012).divide(1e6)).divide(snev_areakm2);
+//print ('Área cubierta por nieve en porcentaje 2012',((A2012.multiply(100))))
+var A2013=(ee.Number(area_2013).divide(1e6)).divide(snev_areakm2);
+//print ('Área cubierta por nieve en porcentaje 2013',((A2013.multiply(100))))
+var A2014=(ee.Number(area_2014).divide(1e6)).divide(snev_areakm2);
+//print ('Área cubierta por nieve en porcentaje 2014',((A2014.multiply(100))))
+var A2015=(ee.Number(area_2015).divide(1e6)).divide(snev_areakm2);
+//print ('Área cubierta por nieve en porcentaje 2015',((A2015.multiply(100))))
+var A2016=(ee.Number(area_2016).divide(1e6)).divide(snev_areakm2);
+//print ('Área cubierta por nieve en porcentaje 2016',((A2016.multiply(100))))
+var A2017=(ee.Number(area_2017).divide(1e6)).divide(snev_areakm2);
+//print ('Área cubierta por nieve en porcentaje 2017',((A2017.multiply(100))))
+var A2018=(ee.Number(area_2018).divide(1e6)).divide(snev_areakm2);
+//print ('Área cubierta por nieve en porcentaje 2018',((A2018.multiply(100))))
+var A2019=(ee.Number(area_2019).divide(1e6)).divide(snev_areakm2);
+//print ('Área cubierta por nieve en porcentaje 2019',((A2019.multiply(100))))
+var A2020=(ee.Number(area_2020).divide(1e6)).divide(snev_areakm2);
+//print ('Área cubierta por nieve en porcentaje 2020',((A2020.multiply(100))))
+var A2021=(ee.Number(area_2021).divide(1e6)).divide(snev_areakm2);
+//print ('Área cubierta por nieve en porcentaje 2021',((A2021.multiply(100))))
+var A2022=(ee.Number(area_2022).divide(1e6)).divide(snev_areakm2);
+//print ('Área cubierta por nieve en porcentaje 2022',((A2022.multiply(100))))
+var A2023=(ee.Number(area_2023).divide(1e6)).divide(snev_areakm2);
+//print ('Área cubierta por nieve en porcentaje 2023',((A2022.multiply(100))))
+var A2024=(ee.Number(area_2024).divide(1e6)).divide(snev_areakm2);
+//print ('Área cubierta por nieve en porcentaje 2023',((A2022.multiply(100))))
+var A2025=(ee.Number(area_2025).divide(1e6)).divide(snev_areakm2);
+//print ('Área cubierta por nieve en porcentaje 2023',((A2022.multiply(100))))
+
+
+// To visualize the snow cover series in relation to the area of the entire Sierra Nevada, create a list with the cover values
+var index = ee.List([[A1985,1985],
+                    [ A1986,1986],
+                    [ A1987,1987],
+                    [ A1988,1988],
+                    [ A1989,1989],
+                    [ A1990,1990],
+                    [ A1991,1991],
+                    [ A1992,1992],
+                    [ A1993, 1993],
+                    [ A1994, 1994],
+                    [ A1995, 1995],
+                    [ A1996, 1996],
+                    [ A1997, 1997],
+                    [ A1998, 1998],
+                    [ A1999, 1999],
+                    [ A2000, 2000],
+                    [ A2001, 2001],
+                    [ A2002, 2002],
+                    [ A2003, 2003],
+                    [ A2004, 2004],
+                    [ A2005, 2005],
+                    [ A2006, 2006],
+                    [ A2007, 2007],
+                    [ A2008, 2008],
+                    [ A2009, 2009],
+                    [ A2010, 2010],
+                    [ A2011, 2011],
+                    [ A2012, 2012],
+                    [ A2013, 2013],
+                    [ A2014, 2014],
+                    [ A2015, 2015],
+                    [ A2016, 2016],
+                    [ A2017, 2017],
+                    [ A2018, 2018],
+                    [ A2019, 2019], 
+                    [ A2020, 2020], 
+                    [ A2021, 2021], 
+                    [ A2022, 2022],
+                    [ A2023, 2023],
+                    [ A2024, 2024],
+                    [ A2025, 2025]
+                    ]);
+
+var featList = index.map(function(list){
+  return ee.Feature(null).set({SnowCover:ee.List(list).get(0), year:ee.List(list).get(1)});
+});
+
+var features = ee.FeatureCollection(featList);
+print(features);
+
+
+/////Regression value between snow cover and year///////
+
+var r2 = ee.Number(features.reduceColumns(ee.Reducer.pearsonsCorrelation(), ['year', 'SnowCover']).get('correlation')).pow(2);
+print('r2 = ', r2);
+
+
+print(ui.Chart.feature.byFeature({
+  features: features, 
+  xProperty: 'year', 
+  yProperties: ['SnowCover']
+}).setOptions({
+  title: "Snow cover % in Sierra Nevada",
+  hAxis: {title: 'Year'},
+  vAxis: {title: 'Snow Cover %'},
+  colors: ['#EF851C'],
+  pointSize: 3,
+  lineWidth: 1,
+  trendlines: { 
+    0: { 
+      type: 'linear', 
+      visibleInLegend: true,
+      color: 'black',
+      opacity: 1,
+      lineWidth: 2,
+      pointSize: 0,
+      showR2: true
+    } 
+  }  
+}));
+

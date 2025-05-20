@@ -1,0 +1,291 @@
+/**** Start of imports. If edited, may not auto-convert in the playground. ****/
+var geometry = 
+    /* color: #d63000 */
+    /* displayProperties: [
+      {
+        "type": "rectangle"
+      }
+    ] */
+    ee.Geometry.Polygon(
+        [[[-3.491768746658579, 36.97634062721917],
+          [-3.491768746658579, 36.96180266185767],
+          [-3.4692811062777196, 36.96180266185767],
+          [-3.4692811062777196, 36.97634062721917]]], null, false);
+/***** End of imports. If edited, may not auto-convert in the playground. *****/
+
+
+// Script to calculate the Normalized Difference Snow Index (NDSI) from Landsat 5 images after the fire in Lanjarón (2005)
+//  author: 'Carlos Javier Navarro',
+//  creationDate: '2024-10-02',
+// email: 'carlosnavarro@ugr.es',
+//  institution: 'Instituto Interuniversitario De Investigación Del Sistema Tierra En Andalucía',
+//  paperReference: ''
+
+// Load the grid where we will extract information
+var pixels = ee.FeatureCollection("users/CarlosNavarro/Pixeles_Parcela/Pixeles_parcelas");
+
+// And a geometry that covers the two study areas
+//var geometry = geometry;
+
+// Define Start and End Dates 
+var startDate = '1999-10-01';
+var endDate = '2012-06-01';
+
+// To filter by hydrological period
+// var months = ee.Filter.or((ee.Filter.calendarRange(1, 5, "month")),(ee.Filter.calendarRange(11, 12, "month")));
+
+
+//First filter only the useful pixels
+// Excluding, for example, border pixels (category 4)
+// Only left with category 1
+var pixels = pixels.filter(ee.Filter.eq('suit', "1"));
+pixels = pixels.filter(ee.Filter.neq('ReplicaID', '4PCL2'));
+
+// View information about my FeatureCollection
+print(pixels, "Pixels polygons");
+
+//---------------------------------------------------------------------------------------------------------------------------
+/////////////////////////////////////////// Landsat - 5 /////////////////////////////////////////////////////////////////////
+//---------------------------------------------------------------------------------------------------------------------------
+
+// images with cloud after visual inspection
+// for this we use this GEE app create for this purpose
+// https://carlosnavarro.users.earthengine.app/view/landsat7view
+
+var withCloudL5 = [
+  "LT05_200034_19850118", "LT05_200034_19850219", "LT05_200034_19860121", 
+  "LT05_200034_19860222", "LT05_200034_19860310", "LT05_200034_19860411", 
+  "LT05_200034_19860427", "LT05_200034_19861207", "LT05_200034_19870124", 
+  "LT05_200034_19870225", "LT05_200034_19870313", "LT05_200034_19870430", 
+  "LT05_200034_19871108", "LT05_200034_19871124", "LT05_200034_19871210", 
+  "LT05_200034_19880111", "LT05_200034_19880127", "LT05_200034_19880228", 
+  "LT05_200034_19881110", "LT05_200034_19881126", "LT05_200034_19890129", 
+  "LT05_200034_19890403", "LT05_200034_19891113", "LT05_200034_19891129", 
+  "LT05_200034_19891231", "LT05_200034_19900305", "LT05_200034_19900406", 
+  "LT05_200034_19901202", "LT05_200034_19910308", "LT05_200034_19910409", 
+  "LT05_200034_19920310", "LT05_200034_19921207", "LT05_200034_19930225", 
+  "LT05_200034_19930414", "LT05_200034_19930430", "LT05_200034_19940228", 
+  "LT05_200034_19950130", "LT05_200034_19951114", "LT05_200034_19951130", 
+  "LT05_200034_19960101", "LT05_200034_19960117", "LT05_200034_19960406", 
+  "LT05_200034_19970103", "LT05_200034_19970425", "LT05_200034_19971119", 
+  "LT05_200034_19971221", "LT05_200034_19980207", "LT05_200034_19980428", 
+  "LT05_200034_19990109", "LT05_200034_19990226", "LT05_200034_19990415", 
+  "LT05_200034_20000112", "LT05_200034_20000417", "LT05_200034_20001229", 
+  "LT05_200034_20010215", "LT05_200034_20010420", "LT05_200034_20011216", 
+  "LT05_200034_20020101", "LT05_200034_20020218", "LT05_200034_20040107", 
+  "LT05_200034_20040327", "LT05_200034_20040412", "LT05_200034_20050210", 
+  "LT05_200034_20050314", "LT05_200034_20051125", "LT05_200034_20061128", 
+  "LT05_200034_20070131", "LT05_200034_20070405", "LT05_200034_20081203", 
+  "LT05_200034_20090120", "LT05_200034_20090205", "LT05_200034_20090410", 
+  "LT05_200034_20100123", "LT05_200034_20100208", "LT05_200034_20100224", 
+  "LT05_200034_20100312", "LT05_200034_20100413", "LT05_200034_20101107", 
+  "LT05_200034_20101123", "LT05_200034_20101225", "LT05_200034_20110126", 
+  "LT05_200034_20110416", "LT05_200034_20090917",
+  
+  "LT05_200034_19840608", "LT05_200034_19880822", "LT05_200034_19890910",
+  "LT05_200034_19900524", "LT05_200034_19900913", "LT05_200034_19910815", 
+  "LT05_200034_19920801", "LT05_200034_19930703", "LT05_200034_19931210", 
+  "LT05_200034_19950404", "LT05_200034_19950725", "LT05_200034_19950911", 
+  "LT05_200034_19960625", "LT05_200034_19960727", "LT05_200034_19960913", 
+  "LT05_200034_19981224"
+
+];
+
+
+//Scale the image following this tutorial https://developers.google.com/earth-engine/datasets/catalog/LANDSAT_LT05_C02_T1_L2
+// Applies scaling factors.
+function applyScaleFactors(image) {
+   var opticalBands = image.select('SR_B.').multiply(0.0000275).add(-0.2);
+   var thermalBand = image.select('ST_B6').multiply(0.00341802).add(149.0);
+   return image.addBands(opticalBands, null, true)
+               .addBands(thermalBand, null, true);
+}
+
+
+// Landsat 5 SR collection 'LANDSAT/LT05/C02/T1_L2'
+// 1) Filter by extension
+// 2) Filter by the start and end dates of the series
+// 3) Filter by the hydrological period (October to May in this case)
+// 4) Exclude all images that had clouds (manual selection of these images)
+
+var l5 = ee.ImageCollection('LANDSAT/LT05/C02/T1_L2') 
+               .filterBounds(pixels) //
+               .filterDate(startDate, endDate)
+               //.filter(months)
+               .filter(ee.Filter.inList('system:index', withCloudL5).not());
+
+// Print size Collection
+print( "Size of Collection Landsat 5:", l5.size());
+
+
+//---------------------------------------------------------------------------------------------------------------------------
+/////////////////////////////////////////// Landsat - 7 /////////////////////////////////////////////////////////////////////
+//---------------------------------------------------------------------------------------------------------------------------
+
+// images with snow after visual inspection
+var withSnowl7 = [
+  "LE07_200034_19991117",//l7
+  "LE07_200034_19991203",//l7
+  "LE07_200034_20000120",//l7
+  "LE07_200034_20000205",//l7
+  "LE07_200034_20001119",//l7
+  "LE07_200034_20010207",//l7
+  "LE07_200034_20010311",//l7
+  "LE07_200034_20021125",//l7
+  "LE07_200034_20030112",//l7
+  "LE07_200034_20030128",//l7
+  "LE07_200034_20030301",//l7
+  "LE07_200034_20000205",//l7
+  "LE07_200034_20010207"//l7
+  ];
+
+var l7 = ee.ImageCollection('LANDSAT/LE07/C02/T1_L2') 
+               .filterBounds(pixels) //
+               .filterDate(startDate, endDate)
+               //.filter(months)
+               .filter(ee.Filter.inList('system:index', withSnowl7));
+
+// Print size Collection
+print( "Size of Collection Landsat 7:", l7.size());
+
+// Merge collection
+var landsat = l5.merge(l7); 
+print( "Size of Collection Landsat:", landsat.size());
+
+
+//----------------------------------------------------------------------------------------------------------------------------
+///////////////////////////////// NDSI functions /////////////////////////////////////////////////////////////////////////////
+//----------------------------------------------------------------------------------------------------------------------------
+
+//https://www.usgs.gov/landsat-missions/normalized-difference-snow-index
+// Calculation of NDSI from the bands: Band 2 (green) and Band 5 (shortwave infrared 1)
+//NDSI = (Band 2 – Band 5) / (Band 2 + Band 5)
+
+//Create a function to calculate NDSI values and binary values based on a locally adjusted threshold
+var addNDSI = function(image) {
+   var NDSI = image.normalizedDifference(['SR_B2','SR_B5']).rename('NDSI');
+   var NDSIbin = NDSI.gt(0.35).rename('NDSIbin');
+   return image
+     .addBands(NDSI).addBands(NDSIbin)
+     .copyProperties(image, ['system:time_start']);
+};
+
+//-----------------------------------------------------------------------------------------------------------------------------
+///////////////////////////////// Apply the functions//////////////////////////////////////////////////////////////////////////
+//-----------------------------------------------------------------------------------------------------------------------------
+
+var LandsatScale = landsat.map(applyScaleFactors);
+var NDSI= LandsatScale.map(addNDSI).select(["NDSI"]);
+
+Map.addLayer(NDSI, {}, "NDSI");
+// Add Plots
+
+Map.addLayer(pixels, {}, "Plot Pixels");
+
+///!! OPCIONAL DESCARGAR SOLO VALORES FILTRADOS
+
+// applies thresholds and computes new property to be used for filtering
+function threshold(i) {
+   var count = i.select('NDSI').gt(0.35).reduceRegion(ee.Reducer.sum(), geometry, 30).values().get(0);
+   return i.set({snow_count: count});
+}
+
+var NDSI_l5_filt = NDSI.map(threshold);
+
+print('Number of snow pixels for all images:', NDSI_l5_filt.aggregate_array('snow_count'));
+
+// filter those that have values greater than 0 in the sum
+NDSI_l5_filt = NDSI_l5_filt.filter(ee.Filter.gt('snow_count', 0));
+
+print('Number if images after filtering: ', NDSI_l5_filt.size());
+
+// Obtener las fechas de las imágenes filtradas
+var dates = NDSI_l5_filt.aggregate_array('system:time_start');
+
+// Convertir las fechas a una lista
+var dateList = ee.List(dates);
+
+// Crear una función para filtrar la colección original por las fechas
+var filterByDates = function(image) {
+  var date = ee.Date(image.get('system:time_start'));
+  return ee.ImageCollection(L5_Scale.filterDate(date, date.advance(1, 'day'))).first();
+};
+
+// Aplicar la función para obtener la colección filtrada por las mismas fechas
+var originalFiltered = ee.ImageCollection(dateList.map(function(date) {
+  var image = NDSI_l5_filt.filterDate(ee.Date(date), ee.Date(date).advance(1, 'day')).first();
+  return LandsatScale.filterDate(ee.Date(date), ee.Date(date).advance(1, 'day')).first();
+}));
+
+print(originalFiltered);
+
+// Obtener los IDs de las imágenes filtradas
+var ids = originalFiltered.aggregate_array('system:index');
+
+// Imprimir los IDs para copiar y pegar en otro script
+print(ids);
+
+var NDSI_l5 = NDSI_l5_filt; 
+
+Map.addLayer(NDSI_l5);
+
+////-----------------------------------------------------------------------------------------------------------------------------
+///////////////////////////////////EXTRACT VALUES //////////////////////////////////////////////////////////////////////
+////-----------------------------------------------------------------------------------------------------------------------------
+
+
+// Define a function to extract values of NDSI for a single polygon
+var extractNDSIForPolygon = function(polygon) {
+  // Define a function to extract NDSI for a single image
+  var extractNDSIForImage = function(image) {
+    // Extract the acquisition date of the Landsat image
+    var dateAcquired = ee.Date(image.get('system:time_start')).format('YYYY-MM-dd');
+    var satellite = image.get('SPACECRAFT_ID');
+    
+    // Reduce the region for the current polygon
+    var stats = image.reduceRegion({
+      reducer: ee.Reducer.mean(), // You can change the reducer as needed
+      geometry: polygon.geometry(),
+      scale: 30, // Adjust the scale as needed
+      maxPixels: 1e9 // Adjust as needed
+    });
+    
+    // Return a dictionary with the relevant information
+    return ee.Feature(null, {
+      'polygon_id': polygon.get('ID'), // Replace 'ID' with your polygon ID property
+      'DATE_ACQUIRED': dateAcquired,
+      'SPACECRAFT_ID': satellite,
+      'NDSI_mean': stats.get('NDSI'), // Ensure 'NDSI' matches your NDSI band name
+      'Trat_1': polygon.get('Trat_1')//Tratamiento
+    });
+  };
+  
+  // Map the extractNDSIForImage function over the NDSI collection
+  var ndsiValuesForPolygon = NDSI.map(extractNDSIForImage);
+  
+  return ndsiValuesForPolygon;
+};
+
+// Map the extractNDSIForPolygon function over the polygons
+var extractedValues = pixels.map(extractNDSIForPolygon);
+
+// Flatten the resulting nested FeatureCollection
+var flattenedValues = extractedValues.flatten();
+
+// Print the results
+print("Results:", flattenedValues.limit(2));
+
+// Export the table of results to Google Drive
+Export.table.toDrive({
+  collection: flattenedValues,
+  description: 'NDSI_Values',
+  folder: 'GEEs', // Adjust the destination folder
+  fileFormat: 'CSV' // You can change the format as needed
+});
+
+// print(pixels)
+
+// var poligon = pixels.filter(ee.Filter.eq('ID', 668)) 
+// print(poligon, "poligon")
+
+// Map.addLayer(poligon)
