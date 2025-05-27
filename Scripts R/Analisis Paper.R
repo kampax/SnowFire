@@ -206,7 +206,7 @@ filtered_data$PrePost2 <- factor(filtered_data$PrePost, levels = c("Pre-fire", "
 # plot
 g<- filtered_data %>% filter(PrePost2 %in% c('Pre-fire period', 'Post-fire period')) %>% 
   ggplot(filtered_data, mapping = aes(x = Trat_1, y = porcentaje, fill = Trat_1)) +
-  geom_boxplot() +
+  geom_boxplot(alpha = 0.75) +
   facet_wrap(~ PrePost2) +
   labs(title = "",
        x = "Treatment",
@@ -288,7 +288,7 @@ tab$PrePost2 <- factor(tab$PrePost, levels = c("Pre-fire", "Post-fire"),
 # Plot 
 g3 <- tab %>% filter(PrePost %in% c('Pre-fire', 'Post-fire')) %>% 
   ggplot(tab, mapping = aes(x = Trat_1.x, y = porcent, fill = Trat_1.x)) +
-  geom_boxplot() +
+  geom_boxplot(alpha = 0.75) +
   facet_wrap(~ PrePost2) +
   labs(title = "",
        x = "Treatment",
@@ -470,6 +470,42 @@ sat<- sat %>% dplyr::select(Satellite, ID_Scene, Date)
 
 # Save as csv
 write.csv(sat, "Scenes_used.csv", row.names = FALSE)
+
+
+#########################################
+# Summarise the values of covariates ####
+#########################################
+
+# mean values per pixel
+
+datos2 <- datos %>% 
+  group_by(ID) %>% 
+  summarise(
+    Trat_1 = unique(Trat_1),
+    Repl = unique(Repl),
+    height = mean(height, na.rm = TRUE),
+    y = mean(y, na.rm = TRUE),
+    x = mean(x, na.rm = TRUE),
+    slope = mean(slope, na.rm = TRUE),
+    orientation = mean(orientation, na.rm = TRUE)
+  )
+
+
+# Summarise the covariates by treatment and replication
+
+covariates_summ <- datos2 %>% 
+  group_by(Trat_1, Repl) %>% 
+  summarise(
+    elevation_mean = round(mean(height, na.rm = TRUE),2),
+    latitude_mean = mean(y, na.rm = TRUE),
+    longitude_mean = mean(x, na.rm = TRUE),
+    number_of_pixels = n(),
+    Area = round((n()* 30 * 30 / 10000), 2), 
+    slope_mean = round(mean(slope, na.rm = TRUE), 2),
+    aspect_mean = round(mean(orientation, na.rm = TRUE),2)
+  )
+
+mean(covariates_summ$slope_mean)
 
 #########################################
 ############## End of script#############

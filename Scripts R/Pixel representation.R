@@ -70,13 +70,24 @@ g <- ggplot() +
   theme(
     legend.position = "right",
     panel.grid.major = element_line(color = "transparent"),
-    panel.background = element_rect(fill = "#e6f2d3", color = NA)
+    panel.background = element_rect(fill = "#e6f2d3", color = NA),
+    axis.ticks = element_line(color = "black"),  # Color de los ticks
+    axis.ticks.length = unit(-0.15, "cm"),      # Longitud negativa para ticks internos
     # panel.background = element_rect(fill = "gray95", color = NA)
   ) +
   coord_sf() +
-  scale_x_continuous(labels = function(x) round(x, 2)) +
-  scale_y_continuous(labels = function(x) round(x, 2)) +
-  labs(x = "", y = "")
+  # scale_x_continuous(labels = function(x) round(x, 2)) +
+  # scale_y_continuous(labels = function(x) round(x, 2)) +
+  labs(x = "", y = "")+
+  scale_x_continuous(
+    breaks = c(-3.486, -3.474),  # Más breaks para mayor detalle
+    # name = "Longitud"
+  ) +
+  scale_y_continuous(
+    breaks = c(36.970, 36.964),  # Más breaks para mayor detalle
+    # name = "Latitud"
+  )
+  
 
 g
 
@@ -127,39 +138,3 @@ leaflet(data) %>%
   )
 
 
-# 
-# g <- ggplot() +
-#   geom_sf(data = datos, aes(fill = dif_cat), color = NA) +
-#   geom_sf(data = contornos, aes(color = Trat_1), fill = NA, linewidth = 1) +
-#   scale_fill_manual(values = colores_dif, name = "Difference post-pre fire") +
-#   scale_color_manual(
-#     name = "Treatment",
-#     values = c("NI" = "#67A9CF", "SL" = "#984EA3", "PCL" = "#000000"),
-#     labels = c("NI (151 pixels)", "SL (59 pixels)", "PCL (212 pixels)")
-#   ) +
-#   annotation_scale(location = "bl", width_hint = 0.18, bar_cols = c("black", "white")) +
-#   annotation_north_arrow(
-#     location = "tl", which_north = "true",
-#     style = north_arrow_fancy_orienteering(fill = c("black", "white")),
-#     height = unit(1.5, "cm"),
-#     width = unit(1.5, "cm")
-#   ) +
-#   theme_minimal() +
-#   theme(
-#     # Posición de la leyenda (x, y) en coordenadas normalizadas (0-1)
-#     legend.position = c(0.85, 0.75),
-#     # Fondo de la leyenda (opcional)
-#     legend.background = element_rect(fill = "white", color = "gray50"),
-#     # Espacio alrededor de la leyenda (opcional)
-#     legend.box.margin = margin(10, 10, 10, 10),
-#     # Margen del gráfico (top, right, bottom, left)
-#     plot.margin = unit(c(1, 5, 1, 1), "cm"),
-#     panel.grid.major = element_line(color = "transparent"),
-#     panel.background = element_rect(fill = "#e6f2d3", color = NA)
-#   ) +
-#   coord_sf() +
-#   scale_x_continuous(labels = function(x) round(x, 2)) +
-#   scale_y_continuous(labels = function(x) round(x, 2)) +
-#   labs(x = "", y = "")
-# 
-# g
