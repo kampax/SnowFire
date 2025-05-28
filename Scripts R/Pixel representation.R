@@ -1,4 +1,4 @@
-# Cargar paquetes
+# Load libraries
 library(ggplot2)
 library(sf)
 library(dplyr)
@@ -10,7 +10,7 @@ library(tidyterra)
 library(leaflet)
 
 # Load the data
-data <- st_read("Spatial analysis/Difference_p3p4.shp")  
+data <- st_read("Spatial analysis/plots_pixels.shp")  
 
 
 # Rename Pre_difere as "diference"

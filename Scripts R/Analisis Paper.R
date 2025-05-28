@@ -93,10 +93,16 @@ resumen = filtered_data %>%
             median_trat = median(porcentaje), 
             sd = sd(porcentaje, na.rm=T))
 
+# Diference between NI and the other treatments this information its mentioned in the abstract
+resumen %>% 
+  filter(PrePost == "Post-fire") 
+
 
 # Convert the variables to factors
 filtered_data$Trat_1 <- as.factor(filtered_data$Trat_1)
 filtered_data$PrePost <- as.factor(filtered_data$PrePost)
+
+
 
 
 ###################################
@@ -154,9 +160,13 @@ summary_post <- summary(anova_result)
 
 # post hoc comparisons using Tukey's test
 tukey_result_post <- TukeyHSD(anova_result)
+tukey_result_post
 tukey_post_df <- as.data.frame(tukey_result_post$Trat_1)
 
 
+# Kruskall wallis
+kruskal_test_post <- kruskal.test(porcentaje ~ Trat_1, data = post_period)
+kruskal_test_post
 #########################
 ###2.c) TABLES###########
 #########################
@@ -219,7 +229,7 @@ g<- filtered_data %>% filter(PrePost2 %in% c('Pre-fire period', 'Post-fire perio
 g
 
 
-ggsave("Figures/1)Fire_Pre_Post.jpg",g, units = "cm", width = 15, height = 7, dpi = 600)
+ggsave("Figures/1_Fire_Pre_Post.jpg",g, units = "cm", width = 15, height = 7, dpi = 600)
 
 
 ###################################
@@ -300,7 +310,7 @@ g3 <- tab %>% filter(PrePost %in% c('Pre-fire', 'Post-fire')) %>%
 
 g3
 
-ggsave("Figures/2) Snow_Pixel_Level.jpg", g3, units = "cm", width = 20, height = 10, dpi = 300)
+ggsave("Figures/Snow_Pixel_Level.jpg", g3, units = "cm", width = 20, height = 10, dpi = 300)
 
 
 #########################
@@ -434,7 +444,7 @@ g3<- ggplot() +
 
 g3
 
-ggsave("Figures/1) Number of scenes per period.jpg",g3, units = "cm", width = 20, height = 10, dpi = 300)
+ggsave("Figures/Number of scenes per period.jpg",g3, units = "cm", width = 20, height = 10, dpi = 300)
 
 
 r2 <- r %>% 
@@ -466,7 +476,13 @@ sat<- sat %>%
 # Exclude the historical period and order 
 sat <- sat %>% filter(PrePost %in% c('Pre-fire', 'Post-fire', 'Fire')) %>% arrange(Satellite, Date)
 
+# Number of scenes per Satellite
+sat %>%
+  group_by(Satellite) %>%
+  summarise(Scenes = n_distinct(ID_Scene))
+
 sat<- sat %>% dplyr::select(Satellite, ID_Scene, Date)
+
 
 # Save as csv
 write.csv(sat, "Scenes_used.csv", row.names = FALSE)
@@ -476,19 +492,21 @@ write.csv(sat, "Scenes_used.csv", row.names = FALSE)
 # Summarise the values of covariates ####
 #########################################
 
-# mean values per pixel
 
+# mean values per pixel
 datos2 <- datos %>% 
   group_by(ID) %>% 
   summarise(
     Trat_1 = unique(Trat_1),
-    Repl = unique(Repl),
+    Repl = unique(ReplicaID),
     height = mean(height, na.rm = TRUE),
     y = mean(y, na.rm = TRUE),
     x = mean(x, na.rm = TRUE),
     slope = mean(slope, na.rm = TRUE),
     orientation = mean(orientation, na.rm = TRUE)
   )
+
+
 
 
 # Summarise the covariates by treatment and replication
@@ -504,6 +522,7 @@ covariates_summ <- datos2 %>%
     slope_mean = round(mean(slope, na.rm = TRUE), 2),
     aspect_mean = round(mean(orientation, na.rm = TRUE),2)
   )
+
 
 mean(covariates_summ$slope_mean)
 

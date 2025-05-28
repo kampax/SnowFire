@@ -21,11 +21,14 @@ To facilitate comparison between treatments, all scenes that had cloud cover in 
 Additionally, we calculate the values of some ancillary layers that can influence the occurrence of snow such as elevation, slope, shadows, etc., which will later be included in the models.
 
 ### 4) Snow percentage calculation at pixel level
-Since the idea is to compare the treatments in the periods before and after the fire, we first filter and are left only with the scenes that had snow. Subsequently, using a threshold of 0.35, we created binary layers of each scene where the value of 1 represents the occurrence of snow and 0 the absence of snow. Then we calculate the percentage of snow occurrence per period by adding all the values and dividing by the total number of scenes considered per period and then multiplying by 100 to put it into percentage values.
+Since the idea is to compare the treatments in the periods before and after the fire, we first filter and are left only with the scenes that had snow. Subsequently, using a threshold of 0.35, we created binary layers of each scene where the value of 1 represents the occurrence of snow and 0 the absence of snow. We then calculated the percentage of pixels occupied by snow for each of the treatments in each of the scenes.
 
 ### 5) Comparison between treatments
 
-The comparison of the treatments was done in two ways. The first quantifying the number of pixels with snow in relation to the total per treatment. And the other using the percentage occurrence values calculated in the previous step per treatment. For this we created GLMs that included the ancillary variables calculated in step 3.
+In each period, before and after the fire, we evaluated whether there were differences between treatments. We found that in the pre-fire period, there were no significant differences between treatments. However, after the fire, significant differences can be observed between treatments, with the no-intervention (NI) treatment having a higher percentage of snow cover (35% more on average) than the other two treatments, as can be seen in the figure.
+![image](https://raw.githubusercontent.com/kampax/SnowFire/refs/heads/main/Scripts%20R/Figures/1_Fire_Pre_Post.jpg) 
+
+![Image](https://github.com/user-attachments/assets/2abaa263-3827-4721-ade6-e491de0ed885)
 
 ---
 **Article Citation**
