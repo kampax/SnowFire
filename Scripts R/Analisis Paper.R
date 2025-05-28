@@ -135,6 +135,17 @@ levene_test
 tukey_result_pre <- TukeyHSD(anova_result)
 tukey_pre_df <- as.data.frame(tukey_result_pre$Trat_1)
 
+# Kruskall wallis analysis
+kruskal_test_pre <- kruskal.test(porcentaje ~ Trat_1, data = pre_period)
+kruskal_test_pre
+
+pairwise.wilcox.test(pre_period$porcentaje, pre_period$Trat_1,
+                     p.adjust.method = "bonferroni")
+
+# Post hoc test using HSD
+hsd_result <- HSD.test(anova_result, "Trat_1", group = TRUE)
+hsd_result$groups
+
 
 ############################
 ###2.b) POSTFIRE ANALIZES###
@@ -145,6 +156,7 @@ post_period<-filtered_data %>% filter(PrePost=='Post-fire')
 
 ## ANOVA
 anova_result <- aov(sqrt(porcentaje + 1) ~ Trat_1, data = post_period)
+# anova_result <- aov(log(porcentaje+1) ~ Trat_1, data = post_period)
 
 # Normality test
 shapiro_test <- shapiro.test(residuals(anova_result))
@@ -164,9 +176,9 @@ tukey_result_post
 tukey_post_df <- as.data.frame(tukey_result_post$Trat_1)
 
 
-# Kruskall wallis
-kruskal_test_post <- kruskal.test(porcentaje ~ Trat_1, data = post_period)
-kruskal_test_post
+hsd_result <- HSD.test(anova_result, "Trat_1", group = TRUE)
+hsd_result$groups
+
 #########################
 ###2.c) TABLES###########
 #########################
@@ -208,6 +220,18 @@ tukey_results %>%
 ######1) GRAFICAS #########
 ###################################
 
+# Significant differences between treatments in the pre-fire period
+tabla <- data.frame(
+  Trat_1 = c("NI", "SL", "PCL", "NI", "PCL", "SL"),
+  y_pos = c( 102, 102, 102, 102, 48, 25),
+  groups = c("a", "a", "a", "a**", "b", "b"),
+  PrePost2 = c("Pre-fire period", "Pre-fire period", "Pre-fire period", 
+               "Post-fire period", "Post-fire period", "Post-fire period")
+)
+
+tabla$PrePost2 <- factor(tabla$PrePost, levels = c("Pre-fire period", "Post-fire period"), 
+                                 labels = c("Pre-fire period", "Post-fire period"))
+
 
 # Modify the data
 filtered_data$PrePost2 <- factor(filtered_data$PrePost, levels = c("Pre-fire", "Post-fire"), 
@@ -225,9 +249,18 @@ g<- filtered_data %>% filter(PrePost2 %in% c('Pre-fire period', 'Post-fire perio
   # scale_fill_manual(values = c("gray80", "gray60", "gray40"))+
   scale_fill_manual(values = c("#237BB4", "#202021","#8C2A9F"))+
   theme(legend.position = "none")
-
 g
 
+# Agregar al gráfico
+g<- g + geom_text(
+  data = tabla,
+  aes(x = Trat_1, y = y_pos, label = groups),
+  inherit.aes = FALSE,
+  size = 5,
+  fontface = "bold"
+)
+
+g
 
 ggsave("Figures/1_Fire_Pre_Post.jpg",g, units = "cm", width = 15, height = 7, dpi = 600)
 
