@@ -28,8 +28,6 @@ Since the idea is to compare the treatments in the periods before and after the 
 In each period, before and after the fire, we evaluated whether there were differences between treatments. We found that in the pre-fire period, there were no significant differences between treatments. However, after the fire, significant differences can be observed between treatments, with the no-intervention (NI) treatment having a higher percentage of snow cover (35% more on average) than the other two treatments, as can be seen in the figure.
 ![image](https://raw.githubusercontent.com/kampax/SnowFire/refs/heads/main/Scripts%20R/Figures/1_Fire_Pre_Post.jpg) 
 
-![Image](https://github.com/user-attachments/assets/2abaa263-3827-4721-ade6-e491de0ed885)
-
 ---
 **Article Citation**
 If you use these codes in your research, please cite the reference article:

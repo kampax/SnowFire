@@ -51,9 +51,13 @@ g <- ggplot(df, aes(Year, SnowCover, group=1))+
   theme(panel.border = element_blank(), panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(), axis.line = element_line(color = "black"))+
   scale_y_continuous(name="Snow cover %",
-                     sec.axis = sec_axis(~.*10,name = " Skiable tracks (km)"))
+                     sec.axis = sec_axis(~.*10,name = " Skiable tracks (km)"))+
+  scale_x_continuous(breaks = seq(min(df$Year), max(df$Year), by = 5))
+  
 
 g
+
+ggsave("../Figures/SnowCover_Skiable_tracks.png", g, units = "cm", width = 18, height = 15, dpi = 300)
 
 
 # Load the shapefiles for the area of study and Countries

@@ -1,3 +1,17 @@
+# Burnt wood removal reduces snow persistence after wildfire –a remote-sensing assessment
+# Authors: [P. Cazorla, Beatriz1,4*, Navarro, Carlos Javier 1*;  Martínez-López, Javier 1,2,4; Postma, Thedmer M. 1; Leverkus, Alexandro B. 1,2; Alcaraz-Segura, Domingo 1,3,4 ; Castro, Jorge 2]
+# Affiliations: 
+# 1 Andalusian Institute for Earth System Research IISTA-CEAMA, Spain 
+# 2 Ecology Department, Faculty of Sciences, University of Granada, Spain 
+# 3 Botany Department, Faculty of Sciences, University of Granada, Spain
+# 4 Andalusian Center for Global Change - Hermelindo Castro (engloba), University of Almería, Spain
+
+# Description: This script processes and visualizes snow cover data from Landsat imagery
+#              in areas affected by different post-fire management treatments.
+# Date: 2025-06-10
+
+
+
 # Load libraries
 library(ggplot2)
 library(sf)
@@ -9,54 +23,115 @@ library(terra)
 library(tidyterra)
 library(leaflet)
 
-# Load the data
-data <- st_read("Spatial analysis/plots_pixels.shp")  
+
+## Post fire values 
+
+## Load database
+df<- read.delim("NDSI_Values.csv", sep = ",")
+
+# Count the number of unique polygons per treatment
+df %>% 
+  group_by(Trat_1) %>% 
+  summarise(n = length(unique(polygon_id)))
+
+### Option to filter by spacecraft
+# df <- df %>% filter(SPACECRAFT_ID == "LANDSAT_5")
 
 
-# Rename Pre_difere as "diference"
+###################################
+######1) Preprocesing #########
+###################################
+
+## Create binary variable for snow presence
+df_y <-df %>% mutate(NDSI_bin = ifelse(NDSI_mean > 0.35, 1, 0 ))
+
+
+# Separate the year into a new column
+data <- df_y %>%
+  mutate(Año_real = as.numeric(substr(DATE_ACQUIRED, 1, 4)),
+         Mes = as.numeric(substr(DATE_ACQUIRED, 6, 7)))
+
+
+### Create new column called year to assign the months of October, November and December to the following year (meteorological year that goes from October to May) for that I add to the year the value of 1
+
+data <- data %>% 
+  mutate(Año = ifelse(Mes == 12, (Año_real+1), Año_real))
+data <- data %>% 
+  mutate(Año = ifelse(Mes == 11, (Año_real+1), Año))
+data <- data %>% 
+  mutate(Año = ifelse(Mes == 10, (Año_real+1), Año))
+
+
+# With the year column I create periods of interest
 data <- data %>%
-  rename(diference = Pre_difere)
+  mutate(PrePost = case_when(Año %in% c(1984:1999) ~ "Historical records",
+                             Año %in% c(2000:2005) ~ "Pre-fire",
+                             Año %in% c(2006:2006) ~ "Fire",
+                             Año %in% c(2007:2025) ~ 'Post-fire'))
+
+# Load the data
+spatial_data <- st_read("Spatial analysis/plots_pixels.shp")  
+
+# Join spatial data with the  data using ID of statial with poligon_id
+spatial_data <- spatial_data %>%
+  left_join(data, by = c("ID" = "polygon_id"))
+
+
+
+# Excluir los años que no son de interés
+spatial_data <- spatial_data %>%
+  filter(Año %in% c(2007:2012))
+
+
+# Sacar un valor promedio por poligon_id por periodo y luego solo filtrar post_fire
+spatial_data <- spatial_data %>%
+  group_by(ID, Trat_1.y, PrePost) %>%
+  summarise(mean_NDSI = mean(NDSI_bin, na.rm = TRUE)) %>%
+  ungroup()
+
+spatial_data<- spatial_data %>%
+  mutate(porcentaje = mean_NDSI * 100)
 
 
 # Categorizing the differences
-data <- data %>%
+spatial_data <- spatial_data %>%
   mutate(
-    dif_cat = cut(diference,
-                  breaks = c(-Inf, -15, -9, -3, 3, 9, 15, Inf),
-                  labels = c("-21 to -15", "-15 to -9", "-9 to -3", "-3 to 3",
-                             "3 to 9", "9 to 15", "15 to 21"),
+    dif_cat = cut(porcentaje,
+                  breaks = c(-Inf, 6, 13, 20, 27, 34, 41, Inf),
+                  labels = c("0 to 6", "6 to 13", "13 to 20", "20 to 27",
+                             "27 to 34", "34 to 41", "41 to 48"),
                   right = FALSE),
-    Trat_1 = factor(Trat_1, levels = c("NI", "SL", "PCL"))
+    Trat_1 = factor(Trat_1.y, levels = c("NI", "SL", "PCL"))
   )
 
 
 # Define the color palette for the differences
 colors_dif <- c(
-  "-21 to -15" = "#ca0020",
-  "-15 to -9"  = "#f4a582",
-  "-9 to -3"   = "#fddbc7",
-  "-3 to 3"    = "#f7f7f7",
-  "3 to 9"     = "#d9f0d3",
-  "9 to 15"    = "#92c5de",
-  "15 to 21"   = "#0571b0"
+  "0 to 6" = "#ca0020",
+  "6 to 13"  = "#f4a582",
+  "13 to 20"   = "#fddbc7",
+  "20 to 27"    = "#f7f7f7",
+  "27 to 34"     = "#ccece6",  # Celeste claro en lugar del verde
+  "34 to 41"    = "#92c5de",
+  "41 to 48"   = "#0571b0"
 )
 
 # Create the countours for the treatments
-contours <- data %>%
+contours <- spatial_data %>%
   group_by(Trat_1) %>%
   summarise(geometry = st_union(geometry)) %>%
   ungroup()
 
- 
+
 
 # Plot 
 g <- ggplot() +
-  geom_sf(data = data, aes(fill = dif_cat), color = NA) +
+  geom_sf(data = spatial_data, aes(fill = dif_cat), color = NA) +
   geom_sf(data = contours, aes(color = Trat_1), fill = NA, linewidth = 0.8) +
-  scale_fill_manual(values = colors_dif, name = "Difference post-pre fire") +
+  scale_fill_manual(values = colors_dif, name = "Snow ocurrence (%) \npost-fire period") +
   scale_color_manual(
     name = "Treatment",
-    values = c("NI" = "#67A9CF", "SL" = "#984EA3", "PCL" = "#000000"),
+    values = c("NI" = "darkgreen", "SL" = "#984EA3", "PCL" = "#000000"),
     labels = c("NI (151 pixels)", "SL (59 pixels)", "PCL (212 pixels)")
   ) +
   annotation_scale(location = "bl", width_hint = 0.18, bar_cols = c("black", "white")) +
@@ -87,54 +162,15 @@ g <- ggplot() +
     breaks = c(36.970, 36.964),  # Más breaks para mayor detalle
     # name = "Latitud"
   )
-  
 
 g
 
+
 # Save the plot as a PNG file
-ggsave("Figures/PixelChart.png", g, units = "cm", width = 19, height = 10, dpi = 300)
+ggsave("Figures/PixelChart_postfire.png", g2, units = "cm", width = 19, height = 10, dpi = 300)
 
 
-###################
-## WITH LEAFLET####
-###################
 
-
-data <- st_transform(data, crs = 4326)
-
-# Color palette for differences
-pal <- colorFactor(
-  palette = c("#ca0020", "#f4a582", "#fddbc7", "#f7f7f7",
-              "#d9f0d3", "#92c5de", "#0571b0"),
-  domain = levels(data$dif_cat)
-)
-
-# Paleta de colores para tratamientos
-pal_trat <- colorFactor(
-  palette = c("NI" = "#67A9CF", "SL" = "#984EA3", "PCL" = "#000000"),
-  domain = levels(data$Trat_1)
-)
-
-# Mapa interactivo
-leaflet(data) %>%
-  addProviderTiles(providers$Esri.WorldImagery, group = "Satélite") %>%  # Fondo satelital
-  addPolygons(
-    fillColor = ~pal(dif_cat),
-    color = ~pal_trat(Trat_1),
-    weight = 2,
-    opacity = 1,
-    fillOpacity = 0.6,
-    group = "Diferences",
-    popup = ~paste("Tratamiento:", Trat_1, "<br>Diferencia:", diference)
-  ) %>%
-  addLegend("bottomright", pal = pal, values = ~dif_cat,
-            title = "Diferencia post-pre fuego") %>%
-  addLegend("topright", pal = pal_trat, values = ~Trat_1,
-            title = "Tratamiento") %>%
-  addLayersControl(
-    baseGroups = c("Satélite"),
-    overlayGroups = c("Diferences"),
-    options = layersControlOptions(collapsed = FALSE)
-  )
-
-
+#########################################
+############## End of script#############
+#########################################
