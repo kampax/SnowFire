@@ -20,6 +20,7 @@ library(kableExtra)
 library(agricolae)
 library(broom)
 library(olsrr)
+library(stargazer)
 
 ## Load database
 df<- read.delim("NDSI_Values.csv", sep = ",")
@@ -322,7 +323,6 @@ ggsave("Figures/Difference_pixel_level.jpg", g, units = "cm", width = 20, height
 ######################################
 ###2) Summarise table ##################
 ######################################
-
 
 
 stargazer(step_both_pre_model, step_both_post_model,

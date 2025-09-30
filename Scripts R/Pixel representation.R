@@ -9,8 +9,8 @@
 # Description: This script processes and visualizes snow cover data from Landsat imagery
 #              in areas affected by different post-fire management treatments.
 # Date: 2025-06-10
-
-
+# Last update: 2025-09-30
+###################################
 
 # Load libraries
 library(ggplot2)
@@ -43,7 +43,7 @@ df %>%
 ###################################
 
 ## Create binary variable for snow presence
-df_y <-df %>% mutate(NDSI_bin = ifelse(NDSI_mean > 0.35, 1, 0 ))
+df_y <-df %>% mutate(NDSI_bin = ifelse(NDSI_mean > 0.4, 1, 0 ))
 
 
 # Separate the year into a new column
@@ -167,7 +167,7 @@ g
 
 
 # Save the plot as a PNG file
-ggsave("Figures/PixelChart_postfire.png", g2, units = "cm", width = 19, height = 10, dpi = 300)
+ggsave("Figures/PixelChart_postfire.png", g, units = "cm", width = 19, height = 10, dpi = 300)
 
 
 
