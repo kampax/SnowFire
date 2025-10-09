@@ -1,5 +1,6 @@
-# Burnt wood removal reduces snow persistence after wildfire –a remote-sensing assessment
-# Authors: [P. Cazorla, Beatriz1,4*, Navarro, Carlos Javier 1*;  Martínez-López, Javier 1,2,4; Postma, Thedmer M. 1; Leverkus, Alexandro B. 1,2; Alcaraz-Segura, Domingo 1,3,4 ; Castro, Jorge 2]
+#---------------------------------------------------------------------------------------------------------
+# Title: Burnt wood removal reduces snow persistence after wildfire –a remote-sensing assessment
+# Authors: [P. Cazorla, Beatriz¹'⁴*, Navarro, Carlos Javier ¹*;  Martínez-López, Javier ¹'²'⁴; Postma, Thedmer M. ¹; Leverkus, Alexandro B. ¹'²; Alcaraz-Segura, Domingo ¹'³'⁴ ; Castro, Jorge ²]
 # Affiliations: 
 # 1 Andalusian Institute for Earth System Research IISTA-CEAMA, Spain 
 # 2 Ecology Department, Faculty of Sciences, University of Granada, Spain 
@@ -9,6 +10,8 @@
 # Description: This script processes and visualizes snow cover data from Landsat imagery
 #              in areas affected by different post-fire management treatments.
 # Date: 2025-06-10
+# Last update: 2025-09-30
+#---------------------------------------------------------------------------------------------------------
 
 ## Load required libraries
 library(tidyverse)
@@ -543,6 +546,234 @@ covariates_summ <- datos2 %>%
 
 
 mean(covariates_summ$slope_mean)
+
+
+######################################
+###### SUPPLEMENTARY MATERIAL #######
+######################################
+
+## Filter images excluding those without snow across all treatments
+## This analysis uses scene-level data (not pixel-level averages)
+scene_data <- data %>% 
+  group_by(PrePost, DATE_ACQUIRED, Trat_1) %>% 
+  summarise(snow_sum = sum(NDSI_bin, na.rm = TRUE),
+            .groups = "drop") %>%
+  # Exclude scenes without snow for any treatment
+  group_by(DATE_ACQUIRED) %>%
+  filter(sum(snow_sum[Trat_1 %in% c("SL", "PCL", "NI")]) > 0) %>%
+  ungroup() %>%
+  # Add pixel counts per treatment
+  mutate(pixel_count = case_when(
+    Trat_1 == "NI" ~ 151,
+    Trat_1 == "SL" ~ 59,
+    Trat_1 == "PCL" ~ 212
+  )) %>%
+  # Calculate snow cover percentage per scene and treatment
+  mutate(snow_percentage = (snow_sum / pixel_count) * 100)
+
+## Summary statistics by treatment and period
+summary_stats <- scene_data %>% 
+  group_by(Trat_1, PrePost) %>% 
+  summarise(mean_percentage = mean(snow_percentage, na.rm = TRUE),
+            median_percentage = median(snow_percentage, na.rm = TRUE), 
+            sd_percentage = sd(snow_percentage, na.rm = TRUE),
+            n_scenes = n(),
+            .groups = "drop")
+
+# Display differences between NI and other treatments (mentioned in abstract)
+summary_stats %>% 
+  filter(PrePost == "Post-fire")
+
+# Convert variables to factors for statistical analysis
+scene_data$Trat_1 <- factor(scene_data$Trat_1, levels = c("NI", "PCL", "SL"))
+scene_data$PrePost <- factor(scene_data$PrePost, levels = c("Pre-fire", "Post-fire"))
+
+
+###################################
+######2) STATISTICAL ANALYSIS #####
+###################################
+
+###########################
+### 2.a) PRE-FIRE PERIOD ###
+###########################
+
+# Filter pre-fire period data
+pre_fire_data <- scene_data %>% filter(PrePost == 'Pre-fire')
+
+## ANOVA with square root transformation (to meet normality assumptions)
+anova_pre <- aov(sqrt(snow_percentage + 1) ~ Trat_1, data = pre_fire_data)
+
+# ANOVA results
+summary_pre <- summary(anova_pre)
+print("Pre-fire ANOVA results:")
+print(summary_pre)
+
+# Test assumptions
+# Normality test on residuals
+shapiro_pre <- shapiro.test(residuals(anova_pre))
+print("Shapiro-Wilk normality test (pre-fire):")
+print(shapiro_pre)
+
+# Homogeneity of variance test
+levene_pre <- leveneTest(snow_percentage ~ Trat_1, data = pre_fire_data)
+print("Levene's test for homogeneity of variance (pre-fire):")
+print(levene_pre)
+
+# Post-hoc comparisons using Tukey's HSD
+tukey_pre <- TukeyHSD(anova_pre)
+tukey_pre_df <- as.data.frame(tukey_pre$Trat_1)
+print("Tukey HSD results (pre-fire):")
+print(tukey_pre)
+
+# Non-parametric alternative: Kruskal-Wallis test
+kruskal_pre <- kruskal.test(snow_percentage ~ Trat_1, data = pre_fire_data)
+print("Kruskal-Wallis test (pre-fire):")
+print(kruskal_pre)
+
+# Pairwise Wilcoxon tests with Bonferroni correction
+wilcox_pre <- pairwise.wilcox.test(pre_fire_data$snow_percentage, pre_fire_data$Trat_1,
+                                   p.adjust.method = "bonferroni")
+print("Pairwise Wilcoxon tests (pre-fire):")
+print(wilcox_pre)
+
+# HSD test for group classification
+hsd_pre <- HSD.test(anova_pre, "Trat_1", group = TRUE)
+print("HSD groups (pre-fire):")
+print(hsd_pre$groups)
+
+
+############################
+### 2.b) POST-FIRE PERIOD ###
+############################
+
+# Filter post-fire period data
+post_fire_data <- scene_data %>% filter(PrePost == 'Post-fire')
+
+## ANOVA with square root transformation
+anova_post <- aov(sqrt(snow_percentage + 1) ~ Trat_1, data = post_fire_data)
+# Alternative: anova_post <- aov(log(snow_percentage + 1) ~ Trat_1, data = post_fire_data)
+
+# ANOVA results
+summary_post <- summary(anova_post)
+print("Post-fire ANOVA results:")
+print(summary_post)
+
+# Test assumptions
+# Normality test on residuals
+shapiro_post <- shapiro.test(residuals(anova_post))
+print("Shapiro-Wilk normality test (post-fire):")
+print(shapiro_post)
+
+# Homogeneity of variance test
+levene_post <- leveneTest(snow_percentage ~ Trat_1, data = post_fire_data)
+print("Levene's test for homogeneity of variance (post-fire):")
+print(levene_post)
+
+# Post-hoc comparisons using Tukey's HSD
+tukey_post <- TukeyHSD(anova_post)
+tukey_post_df <- as.data.frame(tukey_post$Trat_1)
+print("Tukey HSD results (post-fire):")
+print(tukey_post)
+
+# HSD test for group classification
+hsd_post <- HSD.test(anova_post, "Trat_1", group = TRUE)
+print("HSD groups (post-fire):")
+print(hsd_post$groups)
+
+#########################
+### 2.c) SUMMARY TABLES ###
+#########################
+
+# Combine ANOVA results for both periods
+anova_summary <- data.frame(
+  Period = rep(c("Pre-fire", "Post-fire"), each = 2),
+  Source = rep(c("Treatment", "Residuals"), 2),
+  Sum_Sq = c(summary_pre[[1]][["Sum Sq"]], summary_post[[1]][["Sum Sq"]]),
+  Mean_Sq = c(summary_pre[[1]][["Mean Sq"]], summary_post[[1]][["Mean Sq"]]),
+  F_value = c(summary_pre[[1]][["F value"]], summary_post[[1]][["F value"]]),
+  P_value = c(summary_pre[[1]][["Pr(>F)"]], summary_post[[1]][["Pr(>F)"]])
+)
+
+# Combine Tukey test results for both periods
+tukey_summary <- data.frame(
+  Period = rep(c("Pre-fire", "Post-fire"), times = c(nrow(tukey_pre_df), nrow(tukey_post_df))),
+  Comparison = c(rownames(tukey_pre_df), rownames(tukey_post_df)),
+  Mean_Difference = c(tukey_pre_df$diff, tukey_post_df$diff),
+  Lower_CI = c(tukey_pre_df$lwr, tukey_post_df$lwr),
+  Upper_CI = c(tukey_pre_df$upr, tukey_post_df$upr),
+  P_adjusted = c(tukey_pre_df$`p adj`, tukey_post_df$`p adj`)
+)
+
+# Display formatted tables
+anova_summary %>% 
+  kbl(caption = "ANOVA Results: Snow Cover Percentage Before and After Fire", 
+      digits = 4) %>%
+  kable_classic(full_width = FALSE, html_font = "Cambria")
+
+tukey_summary %>% 
+  kbl(caption = "Tukey HSD Test Results: Pairwise Comparisons Before and After Fire", 
+      digits = 4) %>%
+  kable_classic(full_width = FALSE, html_font = "Cambria")
+
+
+###################################
+### 3) VISUALIZATION ##############
+###################################
+
+# Create significance labels for statistical groups
+significance_labels <- data.frame(
+  Trat_1 = c("NI", "SL", "PCL", "NI", "PCL", "SL"),
+  y_position = c(105, 105, 105, 105, 48, 25),
+  significance_group = c("a", "a", "a", "a*", "b", "b"),
+  Period = c("Pre-fire period", "Pre-fire period", "Pre-fire period", 
+             "Post-fire period", "Post-fire period", "Post-fire period")
+)
+
+# Ensure proper factor levels for labels
+significance_labels$Period <- factor(significance_labels$Period, 
+                                   levels = c("Pre-fire period", "Post-fire period"))
+
+# Create period labels for the main dataset
+scene_data$Period <- factor(scene_data$PrePost, 
+                          levels = c("Pre-fire", "Post-fire"), 
+                          labels = c("Pre-fire period", "Post-fire period"))
+
+# Create the main plot
+snow_cover_plot <- scene_data %>% 
+  filter(Period %in% c('Pre-fire period', 'Post-fire period')) %>% 
+  ggplot(aes(x = Trat_1, y = snow_percentage, fill = Trat_1)) +
+  geom_boxplot(alpha = 0.75) +
+  facet_wrap(~ Period) +
+  labs(title = "",
+       x = "Treatment",
+       y = "Snow cover (%)") +
+  theme_bw() +
+  scale_fill_manual(values = c("darkgreen",  "#202021", "#8C2A9F")) +  # NI, PCL, SLdarkgreen
+  theme(legend.position = "none",
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank())
+
+# Add significance labels to the plot
+snow_cover_plot_final <- snow_cover_plot + 
+  geom_text(data = significance_labels,
+            aes(x = Trat_1, y = y_position, label = significance_group),
+            inherit.aes = FALSE,
+            size = 5,
+            fontface = "bold")
+
+# Display the plot
+print(snow_cover_plot_final)
+
+# Save the plot with high resolution
+ggsave("Figures/Supplementary_Figure_Spatial_Analysis_Pre_Post_Fire.jpg", 
+       plot = snow_cover_plot_final, 
+       units = "cm", 
+       width = 15, 
+       height = 9, 
+       dpi = 600)
+
+
+
 
 #########################################
 ############## End of script#############
