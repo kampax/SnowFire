@@ -3,6 +3,7 @@ message: "If you use this code or data, please cite it as below."
 title: "SnowFire: code and data for \"Burnt wood removal reduces snow persistence after wildfire – a remote-sensing assessment\""
 type: software
 license: MIT
+doi: 10.5281/zenodo.23105199
 repository-code: "https://github.com/kampax/SnowFire"
 keywords:
   - wildfire
