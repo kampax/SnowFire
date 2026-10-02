@@ -1,4 +1,6 @@
 # Burnt wood removal reduces snow persistence after wildfire –a remote-sensing assessment
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23105199.svg)](https://doi.org/10.5281/zenodo.23105199)
+
 **Authors:** P. Cazorla, Beatriz¹'⁴*, Navarro, Carlos Javier¹*;  Martínez-López, Javier¹'²'⁴; Postma, Thedmer M.¹; Leverkus, Alexandro B.¹'²; Alcaraz-Segura, Domingo¹'³'⁴ ; Castro, Jorge²
 
 ¹ Andalusian Institute for Earth System Research IISTA-CEAMA, Spain 
@@ -49,8 +51,9 @@ If you use these codes in your research, please cite the reference article:
 > Cazorla, P., Beatriz¹'⁴*, Navarro, C.J.¹*, Martínez-López, J.¹'²'⁴, Postma, T.M.¹, Leverkus, A.B.¹'², Alcaraz-Segura, D.¹'³'⁴, Castro, J.² (2025). *Burnt wood removal reduces snow persistence after wildfire –a remote-sensing assessment*. [Unpublished manuscript].
 
 **Software/data citation (Zenodo)**
-The code and data in this repository are archived in Zenodo. Once the first release is published, replace this line with the DOI badge provided by Zenodo, e.g.:
-`[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.XXXXXXX.svg)](https://doi.org/10.5281/zenodo.XXXXXXX)`
+The code and data in this repository are archived in Zenodo: [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23105199.svg)](https://doi.org/10.5281/zenodo.23105199)
+
+> Cazorla, B.P., Navarro, C.J., Martínez-López, J., Postma, T.M., Leverkus, A.B., Alcaraz-Segura, D., Castro, J. (2025). *SnowFire: code and data for "Burnt wood removal reduces snow persistence after wildfire – a remote-sensing assessment"* [Software]. Zenodo. https://doi.org/10.5281/zenodo.23105199
 
 ---
 © 2025 - [Carlos Javier Navarro / IISTA-CEAMA-UGR]
