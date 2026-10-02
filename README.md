@@ -48,5 +48,9 @@ If you use these codes in your research, please cite the reference article:
 
 > Cazorla, P., Beatriz¹'⁴*, Navarro, C.J.¹*, Martínez-López, J.¹'²'⁴, Postma, T.M.¹, Leverkus, A.B.¹'², Alcaraz-Segura, D.¹'³'⁴, Castro, J.² (2025). *Burnt wood removal reduces snow persistence after wildfire –a remote-sensing assessment*. [Unpublished manuscript].
 
+**Software/data citation (Zenodo)**
+The code and data in this repository are archived in Zenodo. Once the first release is published, replace this line with the DOI badge provided by Zenodo, e.g.:
+`[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.XXXXXXX.svg)](https://doi.org/10.5281/zenodo.XXXXXXX)`
+
 ---
 © 2025 - [Carlos Javier Navarro / IISTA-CEAMA-UGR]

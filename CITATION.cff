@@ -1,0 +1,36 @@
+cff-version: 1.2.0
+message: "If you use this code or data, please cite it as below."
+title: "SnowFire: code and data for \"Burnt wood removal reduces snow persistence after wildfire – a remote-sensing assessment\""
+type: software
+license: MIT
+repository-code: "https://github.com/kampax/SnowFire"
+keywords:
+  - wildfire
+  - salvage logging
+  - snow persistence
+  - NDSI
+  - Landsat
+  - Google Earth Engine
+  - remote sensing
+authors:
+  - family-names: Cazorla
+    given-names: Beatriz P.
+    affiliation: "Andalusian Institute for Earth System Research IISTA-CEAMA"
+  - family-names: Navarro
+    given-names: Carlos Javier
+    affiliation: "Andalusian Institute for Earth System Research IISTA-CEAMA"
+  - family-names: Martínez-López
+    given-names: Javier
+    affiliation: "Andalusian Institute for Earth System Research IISTA-CEAMA"
+  - family-names: Postma
+    given-names: Thedmer M.
+    affiliation: "Andalusian Institute for Earth System Research IISTA-CEAMA"
+  - family-names: Leverkus
+    given-names: Alexandro B.
+    affiliation: "Andalusian Institute for Earth System Research IISTA-CEAMA"
+  - family-names: Alcaraz-Segura
+    given-names: Domingo
+    affiliation: "Andalusian Institute for Earth System Research IISTA-CEAMA"
+  - family-names: Castro
+    given-names: Jorge
+    affiliation: "Ecology Department, University of Granada"
