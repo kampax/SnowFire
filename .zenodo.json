@@ -3,13 +3,40 @@
   "upload_type": "software",
   "description": "<p>Google Earth Engine (JavaScript) and R scripts, together with the derived data, used to study snow occurrence before and after the 2005 Lanjarón wildfire (Sierra Nevada, Spain) in plots where different post-fire treatments were applied: salvage logging (SL), partial cut plus lopping (PCL) and non-intervention (NI).</p><p>The workflow includes: (1) creation of a Landsat-pixel grid and assignment of treatments; (2) calculation of the Normalized Difference Snow Index (NDSI) from Landsat 5 and 7 Collection 2 surface reflectance for cloud-free scenes; (3) extraction of ancillary variables (elevation, slope, shadows, etc.); (4) pixel-level snow percentage calculation (NDSI threshold 0.4); and (5) statistical comparison between treatments before and after the fire.</p>",
   "creators": [
-    {"name": "Cazorla, Beatriz P.", "affiliation": "Andalusian Institute for Earth System Research IISTA-CEAMA; Andalusian Center for Global Change - Hermelindo Castro (ENGLOBA), University of Almería"},
-    {"name": "Navarro, Carlos Javier", "affiliation": "Andalusian Institute for Earth System Research IISTA-CEAMA"},
-    {"name": "Martínez-López, Javier", "affiliation": "Andalusian Institute for Earth System Research IISTA-CEAMA; Ecology Department, University of Granada; Andalusian Center for Global Change - Hermelindo Castro (ENGLOBA), University of Almería"},
-    {"name": "Postma, Thedmer M.", "affiliation": "Andalusian Institute for Earth System Research IISTA-CEAMA"},
-    {"name": "Leverkus, Alexandro B.", "affiliation": "Andalusian Institute for Earth System Research IISTA-CEAMA; Ecology Department, University of Granada"},
-    {"name": "Alcaraz-Segura, Domingo", "affiliation": "Andalusian Institute for Earth System Research IISTA-CEAMA; Botany Department, University of Granada; Andalusian Center for Global Change - Hermelindo Castro (ENGLOBA), University of Almería"},
-    {"name": "Castro, Jorge", "affiliation": "Ecology Department, University of Granada"}
+    {
+      "name": "Cazorla, Beatriz P.",
+      "affiliation": "Andalusian Institute for Earth System Research IISTA-CEAMA; Andalusian Center for Global Change - Hermelindo Castro (ENGLOBA), University of Almería",
+      "orcid": "0000-0002-8934-6133"
+    },
+    {
+      "name": "Navarro, Carlos Javier",
+      "affiliation": "Andalusian Institute for Earth System Research IISTA-CEAMA",
+      "orcid": "0000-0002-0825-7252"
+    },
+    {
+      "name": "Martínez-López, Javier",
+      "affiliation": "Andalusian Institute for Earth System Research IISTA-CEAMA; Ecology Department, University of Granada; Andalusian Center for Global Change - Hermelindo Castro (ENGLOBA), University of Almería",
+      "orcid": "0000-0002-6362-2240"
+    },
+    {
+      "name": "Postma, Thedmer M.",
+      "affiliation": "Andalusian Institute for Earth System Research IISTA-CEAMA"
+    },
+    {
+      "name": "Leverkus, Alexandro B.",
+      "affiliation": "Andalusian Institute for Earth System Research IISTA-CEAMA; Ecology Department, University of Granada",
+      "orcid": "0000-0001-5452-3614"
+    },
+    {
+      "name": "Alcaraz-Segura, Domingo",
+      "affiliation": "Andalusian Institute for Earth System Research IISTA-CEAMA; Botany Department, University of Granada; Andalusian Center for Global Change - Hermelindo Castro (ENGLOBA), University of Almería",
+      "orcid": "0000-0001-8988-4540"
+    },
+    {
+      "name": "Castro, Jorge",
+      "affiliation": "Ecology Department, University of Granada",
+      "orcid": "0000-0003-3583-8391"
+    }
   ],
   "keywords": [
     "wildfire",
